@@ -4,7 +4,10 @@
   <meta charset="utf-8" />
   <meta name="generator" content="pandoc" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
-  <title>About me</title>
+  <meta name="author" content="Alex Muscar" />
+  <meta name="dcterms.date" content="2024-01-04" />
+  <meta name="description" content="On not learning from the past" />
+  <title>A Note on Binary Search and Overflows</title>
   <style>
     html {
       line-height: 1.5;
@@ -190,24 +193,42 @@
 	<a href="https://muscar.eu">muscar.eu</a>
 </div>
 <header id="title-block-header">
-<h1 class="title">About me</h1>
+<h1 class="title">A Note on Binary Search and Overflows</h1>
+<p class="author">Alex Muscar</p>
+<p class="date">January 04, 2024</p>
 </header>
-<p>I like computing and reading. I like lots of other things too, but I
-dedicate an inordinate amount of time to those two.</p>
-<p>Although I’m not a fan of LLM’s, I find <a
-href="https://kagi.com">Kagi’s</a> FastGPT answer to the query “Who is
-Alex Muscar” quite OK:</p>
+<p>I like reading old computing books and articles. I’m know I’m biased,
+but “they don’t make them like they used to”. The other day I was
+thumbing through Dijkstra’s “A Method of Programming”.</p>
+<p>One of my hobby horses to look at binary search implementations, and
+see if they have any of the common issues—off by ones, overflow, the
+likes. And, as it happens, Dijkstra’s book has a chapter on binary
+search. I didn’t expect there to be off by one errors —the whole book is
+about deriving correct programs— but I was curious how he chose the
+midpoint. It’s quite common to see something like of <span
+class="math inline"><em>m</em> ← (<em>l</em>+<em>u</em>)/2</span>, where
+<span class="math inline"><em>l</em></span> and <span
+class="math inline"><em>u</em></span> pointers to the lower and upper
+limits of the search interval.</p>
+<p>This is OK in pseudocode since we don’t have to worry about overflows
+in math. But it doesn’t work so well in the real world where integers
+tend to be bounded. Long story short, <a
+href="https://blog.research.google/2006/06/extra-extra-read-all-about-it-nearly.html">this
+was a thing</a> in 2006.</p>
+<p>Let’s see what Dijkstra had to say about overflows in 1988:</p>
 <blockquote>
-<p>Alex Muscar is a software engineer interested in programming
-languages, concurrency, and distributed systems.</p>
-<p>Alex Muscar maintains a website at muscar.eu where he writes blog
-posts about algorithms, programming languages like D and F#, and
-computer science topics.</p>
-<p>Some blog posts and articles have referenced Alex Muscar’s blog post
-about binary search algorithms.</p>
-<p>Alex Muscar has authored and co-authored academic papers.</p>
-<p>In summary, Alex Muscar seems to be a software engineer and blogger
-focused on programming languages and algorithms.</p>
+<p>Note that the correctness of our solution does not depend on whether
+<span class="math inline"><em>d</em><em>i</em><em>v</em></span> is
+rounded up or down, if rounding is necessary. We are completely at
+liberty, therefore, to replace the assignment to <span
+class="math inline"><em>h</em></span> by</p>
+<p><span
+class="math inline"><em>h</em> := <em>i</em> + (<em>j</em>−<em>i</em>) <em>d</em><em>i</em><em>v</em> 2</span></p>
+<p>a version which should possibly be preferred with a view to
+minimizing the chance of arithmetic overflow. Versions in which
+termination depends critically on rounding conventions are unfortunately
+not unusual in the literature.</p>
 </blockquote>
+<p>I guess it pays to read old books after all.</p>
 </body>
 </html>
