@@ -5,7 +5,7 @@
 <link>https://muscar.eu/</link>
 <description>I try to make computers do cool things. Sometimes I succeed.</description>
 <managingEditor>[email protected] (Alex Muscar)</managingEditor>
-<pubDate>Thu, 04 Jan 2024 16:40:21 +0000</pubDate>
+<pubDate>Thu, 04 Jan 2024 16:58:48 +0000</pubDate>
 <item>
 <title>A simple problem that isn't</title>
 <link>https://muscar.eu/posts/bitset-iter.html</link>
@@ -1556,7 +1556,7 @@ details as I go along. It will help, though, if you’re at least somewhat
 familiar with the assembly language of some other architecture.</p>
 <p>You can find the code from this post <a
 href="https://github.com/muscar/co-sparc">here</a>.</p>
-<h2 id="on-coroutines">On coroutines</h2>
+<h2 id="a-brief-aside-on-coroutines">A brief aside on coroutines</h2>
 <p>Coroutines are not a new concept.<a href="#fn2" class="footnote-ref"
 id="fnref2" role="doc-noteref"><sup>2</sup></a> SIMULA is one of the
 earliest languages to support.<a href="#fn3" class="footnote-ref"
@@ -1569,18 +1569,20 @@ point and <em>one</em> exit point. It’s called once, does its job, and
 returns.</p>
 <p>A coroutine has <em>many</em> entry and exit points. That is, its
 execution can be <em>suspended</em> and <em>resumed</em>. Execution
-resumes where it left off when the coroutine was suspended.</p>
+resumes where it left off when the coroutine was most recently
+suspended.</p>
 <p>If a coroutine can choose who it <em>yields</em> to, it’s called
 <em>symmetric</em>. If it can only yield to the most recent caller, then
 it’s an <em>asymmetric</em> coroutine.</p>
-<h2 id="the-implementation">The implementation</h2>
+<h2 id="implementing-coroutines-on-sparc">Implementing coroutines on
+SPARC</h2>
 <p>The code targets Linux for 64-bit SPARC. There’s nothing 64-bit
 specific about the implementation except the system call numbers. I used
 the <code>as</code> and <code>ld</code> binaries that come with the
-SPARC cross-build tools and QEMU To run the resulting binary.</p>
+SPARC cross-build tools and QEMU to run the resulting binary.</p>
 <h3 id="miscellany">Miscellany</h3>
-<p>We begin by defining some useful constants and a macro for system
-calls.</p>
+<p>Let’s get the nitty gritty out of the way. We define some constants
+and a macro for system calls.</p>
 <pre class="assembly"><code>.equ SYS_exit, 1
 .equ SYS_write, 4
 
@@ -1611,7 +1613,7 @@ for passing arguments and receiving results from callees; and</p></li>
 for temporary results and other bookkeeping for the current
 routine.</p></li>
 </ul>
-<p>In addition to the above, SPARC also has a few special registers: the
+<p>In addition to the above, there are also a few special registers: the
 stack pointer, <code>%sp</code>; the frame pointer, <code>%fp</code>;
 and the link register, <code>%lr</code>.</p>
 <p>On SPARC each function gets its own set of in, out and local
@@ -1628,8 +1630,8 @@ callee are fresh.</p>
 <pre class="assembly"><code>.register %g2, #scratch
 .register %g3, #scratch
 .register %g6, #scratch</code></pre>
-<p>We’re not going to link to <code>libc</code> so our entry point is
-called <code>_start</code>.</p>
+<p>We’re not linking in <code>libc</code> so call the entry point
+<code>_start</code>.</p>
 <pre class="assembly"><code>    .section &quot;.text&quot;
     .align 4
 
@@ -2004,7 +2006,7 @@ likes. And, as it happens, Dijkstra’s book has a chapter on binary
 search. I didn’t expect there to be off by one errors —the whole book is
 about deriving correct programs— but I was curious how he chose the
 midpoint.</p>
-<p>Most textbooks use something like of <span
+<p>Most textbooks use something like <span
 class="math inline"><em>m</em> ← (<em>l</em>+<em>u</em>)/2</span>, where
 <span class="math inline"><em>l</em></span> and <span
 class="math inline"><em>u</em></span> are pointers to the lower and
