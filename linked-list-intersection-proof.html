@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="" xml:lang="">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <meta name="author" content="Alex Muscar" />
+  <meta name="dcterms.date" content="2022-07-02" />
+  <meta name="description" content="A verified algorithm for determining the intersection point of two lists in O(1) space" />
+  <title>A verified algorithm for determining the intersection point of two lists in O(1) space</title>
+  <style>
+    html {
+      line-height: 1.5;
+      font-family: Georgia, serif;
+      font-size: 20px;
+      color: #1a1a1a;
+      background-color: #fdfdfd;
+    }
+    body {
+      margin: 0 auto;
+      max-width: 36em;
+      padding-left: 50px;
+      padding-right: 50px;
+      padding-top: 50px;
+      padding-bottom: 50px;
+      hyphens: auto;
+      overflow-wrap: break-word;
+      text-rendering: optimizeLegibility;
+      font-kerning: normal;
+    }
+    @media (max-width: 600px) {
+      body {
+        font-size: 0.9em;
+        padding: 1em;
+      }
+      h1 {
+        font-size: 1.8em;
+      }
+    }
+    @media print {
+      body {
+        background-color: transparent;
+        color: black;
+        font-size: 12pt;
+      }
+      p, h2, h3 {
+        orphans: 3;
+        widows: 3;
+      }
+      h2, h3, h4 {
+        page-break-after: avoid;
+      }
+    }
+    p {
+      margin: 1em 0;
+    }
+    a {
+      color: #1a1a1a;
+    }
+    a:visited {
+      color: #1a1a1a;
+    }
+    img {
+      max-width: 100%;
+    }
+    h1, h2, h3, h4, h5, h6 {
+      margin-top: 1.4em;
+    }
+    h5, h6 {
+      font-size: 1em;
+      font-style: italic;
+    }
+    h6 {
+      font-weight: normal;
+    }
+    ol, ul {
+      padding-left: 1.7em;
+      margin-top: 1em;
+    }
+    li > ol, li > ul {
+      margin-top: 0;
+    }
+    blockquote {
+      margin: 1em 0 1em 1.7em;
+      padding-left: 1em;
+      border-left: 2px solid #e6e6e6;
+      color: #606060;
+    }
+    code {
+      font-family: CascadiaCode,monospace;
+      font-size: 85%;
+      margin: 0;
+    }
+    pre {
+      margin: 1em 0;
+      overflow: auto;
+    }
+    pre code {
+      padding: 0;
+      overflow: visible;
+      overflow-wrap: normal;
+    }
+    .sourceCode {
+     background-color: transparent;
+     overflow: visible;
+    }
+    hr {
+      background-color: #1a1a1a;
+      border: none;
+      height: 1px;
+      margin: 1em 0;
+    }
+    table {
+      margin: 1em 0;
+      border-collapse: collapse;
+      width: 100%;
+      overflow-x: auto;
+      display: block;
+      font-variant-numeric: lining-nums tabular-nums;
+    }
+    table caption {
+      margin-bottom: 0.75em;
+    }
+    tbody {
+      margin-top: 0.5em;
+      border-top: 1px solid #1a1a1a;
+      border-bottom: 1px solid #1a1a1a;
+    }
+    th {
+      border-top: 1px solid #1a1a1a;
+      padding: 0.25em 0.5em 0.25em 0.5em;
+    }
+    td {
+      padding: 0.125em 0.5em 0.25em 0.5em;
+    }
+    header {
+      margin-bottom: 4em;
+      text-align: center;
+    }
+    #TOC li {
+      list-style: none;
+    }
+    #TOC ul {
+      padding-left: 1.3em;
+    }
+    #TOC > ul {
+      padding-left: 0;
+    }
+    #TOC a:not(:hover) {
+      text-decoration: none;
+    }
+    code{white-space: pre-wrap;}
+    span.smallcaps{font-variant: small-caps;}
+    span.underline{text-decoration: underline;}
+    div.column{display: inline-block; vertical-align: top; width: 50%;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    ul.task-list{list-style: none;}
+    .display.math{display: block; text-align: center; margin: 0.5rem auto;}
+  </style>
+  <link rel="alternate" type="application/rss+xml" title="Alex's website" href="https://muscar.eu/feed.xml"/>
+  <style>
+  @font-face{
+      font-family: "CascadiaCode";
+      src: url('/static/CascadiaCode.ttf') format('truetype');
+  }
+
+  html {
+  	background-color: #F8F4E7;
+  	color: #552800;
+  }
+
+  #home-link {
+  	text-align: center;
+  	font-size: 18pt;
+  	font-weight: bold;
+  }
+  </style>
+</head>
+<body>
+<div id="home-link">
+	<a href="https://muscar.eu">muscar.eu</a>
+</div>
+<header id="title-block-header">
+<h1 class="title">A verified algorithm for determining the intersection
+point of two lists in O(1) space</h1>
+<p class="author">Alex Muscar</p>
+<p class="date">July 2, 2022</p>
+</header>
+<p>Okay, this post has been a long time coming. Initially I meant it to
+cover a generalisation of the the algorithm we developed <a
+href="/linked-list-intersection.html">last time</a>. The plan was to do
+a hand wavy proof of correctness, and take hints from the proof process
+to come up with a more generic version of the algorithm.</p>
+<p>That’s still the plan, but I wasn’t happy with the hand wavy part. So
+I decided to do a proper proof. But if something’s worth doing it’s
+definitely worth overdoing. Right? And that’s how I ended up writing a
+verified version of the algorithm in <a
+href="https://dafny.org/">Dafny</a>.</p>
+<p>On to the proofy bit!</p>
+<h1 id="a-short-aside-on-mutability">A short aside on mutability</h1>
+<p>The algorithm works on singly linked lists implemented using C++
+pointers. Working with mutable, dynamically allocated data structures
+complicates the proof significantly. Since I don’t want to go down the
+<a href="https://dl.acm.org/doi/pdf/10.1145/3211968">Separation
+Logic</a> rabbit hole we’ll make the following simplification: we treat
+the linked lists as <em>finite sequences</em>.</p>
+<p>It turns out Dafny uses a similar approach with an extra twist to
+ensure the lists aren’t circular.</p>
+<h1 id="the-linked-list-data-structure">The linked list data
+structure</h1>
+<p>The <code>Node</code> class is what you’d expect–it has a value and a
+next pointer–with added machinery to aid proofs and a convenience method
+for constructing lists which I’ve omitted. I’ll get to them shortly.</p>
+<pre class="dafny"><code>class Node&lt;T(0)&gt;
+{
+  var value: T;
+  var next: Node?&lt;T&gt;;
+
+  // Proof aides
+
+  static method Cons(x: T, xs: Node?&lt;T&gt;) returns (n: Node&lt;T&gt;)
+    // Pre- and postcondition
+  {
+    // Implementation
+  }
+}</code></pre>
+<p>If you’re wondering about the <code>(0)</code> bit after the type
+parameter, that tells Dafny that whatever type we supply it must be
+“default constructible” in C++ parlance.</p>
+<p>We’ll get to the implementation of <code>Cons</code> in a bit, but
+first let’s look at how Dafny deals with mutable linked lists. Since
+linked lists are a recursive data structures our algorithms will have to
+use either loops or recursion. In either case Dafny will have trouble
+proving that the process terminates because we might be dealing with a
+circular list. The basic approach to solving this difficulty is to keep
+track of what nodes go where, and prove that a node can’t appear in the
+list starting at its <code>next</code> pointer. The idiom in Dafny <a
+href="https://dafny.org/dafny/DafnyRef/DafnyRef#11-dafny-example">seems
+to be</a> to define a <em>predicate</em> called <code>Valid</code>
+together with some <em>ghost</em> fields to track the proof state for
+the linked list. Unlike methods and regular fields, predicates and ghost
+fields are only used for verification<a href="#fn1" class="footnote-ref"
+id="fnref1" role="doc-noteref"><sup>1</sup></a>.</p>
+<pre class="dafny"><code>  // Proof aides
+
+  ghost var Elems: seq&lt;T&gt;;
+  ghost var Repr: set&lt;Node&lt;T&gt;&gt;;
+
+  predicate Valid()
+    reads this, Repr
+  {
+    this in Repr &amp;&amp;
+    |Elems| &gt; 0 &amp;&amp; Elems[0] == value &amp;&amp;
+    (next == null ==&gt; |Elems| == 1) &amp;&amp;
+    (next != null ==&gt;
+      next in Repr &amp;&amp; next.Repr &lt;= Repr &amp;&amp; this !in next.Repr &amp;&amp;
+      next.Valid() &amp;&amp; next.Elems == Elems[1..])
+  }</code></pre>
+<p><code>Elems</code> tracks the elements of the list. <code>Repr</code>
+is more interesting, and it’s the key ingredient for allowing us to work
+with linked lists. It’s a set tracking the nodes in the representation
+of the list<a href="#fn2" class="footnote-ref" id="fnref2"
+role="doc-noteref"><sup>2</sup></a>. <code>Valid</code> uses it to check
+that a node doesn’t appear in the list that starts from it, that is,
+that it’s not circular. It turns out this is enough to allow Dafny to
+work out termination for loops involving linked lists made of
+<code>Node</code>s.</p>
+<p>Now we can finally look at <code>Cons</code> which is pretty much
+what you’d expect plus some proof state bookkeeping.</p>
+<pre class="dafny"><code>  static method Cons(x: T, xs: Node?&lt;T&gt;) returns (n: Node&lt;T&gt;)
+    requires xs == null || xs.Valid()
+    ensures n.Valid()
+    ensures if xs == null then n.Elems == [x] else n.Elems == [x] + xs.Elems
+  {
+    n := new Node;
+    n.value, n.next := x, xs;
+    if xs == null
+    {
+      n.Elems := [x];
+      n.Repr := {n};
+    } else {
+      n.Elems := [x] + xs.Elems;
+      n.Repr := {n} + xs.Repr;
+    }
+  }</code></pre>
+<p>The precondition–introduced by <code>requires</code>–asks for a valid
+node, and the postconditions–introduced by <code>ensures</code>–make
+sure we leave the node in a valid state and that we’ve actually
+prepended <code>x</code> to <code>xs</code>. The actual logic is the
+first two lines. The <code>if</code> keeps the proof state valid.</p>
+<h1 id="the-intersection-algorithm">The intersection algorithm</h1>
+<p>We’re now have all the ingredients to write and prove the
+intersection algorithm. The algorithm is similar to the one last time,
+but I’ve had to make a few adjustments to make Dafny happy.</p>
+<p>Let’s start by looking at the pre- and post conditions.</p>
+<pre class="dafny"><code>method Intersects&lt;T(0)&gt;(a: Node?&lt;T&gt;, b: Node?&lt;T&gt;) returns (r: Node?&lt;T&gt;)
+  requires a == null || a.Valid()
+  requires b == null || b.Valid()
+  ensures a == null || b == null ==&gt; r == null
+  ensures r == null || (r in ListRepr(a) &amp;&amp; r in ListRepr(b))
+{
+  // &quot;Synchronise&quot; lists heads
+
+  // Find the intersection point
+}</code></pre>
+<p>The preconditions are fairly light, we want the lists to be valid. As
+mentioned above, this is key allowing Dafny to derive termination proofs
+for the inner loops.</p>
+<p>By the way, the <code>?</code> after <code>Node</code> in the type
+signatures means it’s a “nullable” type. That means we have to deal with
+<code>null</code> all over the place, but it models the original
+algorithm better.</p>
+<p>The postconditions say if either of the inputs is <code>null</code>
+so will be the reult–fair enough, if any or both lists are empty they
+have no intersection point–and that if the result is not
+<code>null</code>–we found an intersection point–it’s present in both
+lists.</p>
+<p>Now these may sound like reasonable postconditions, but the last one
+is not as strong as it cold be. It would be better if we made sure the
+intersection point is the <em>first</em> common node between the two
+instead of a common node. It looks like it would take a bit more work to
+convince Dafny to verify that postcondition so I decided to publish the
+proof as it is. I might revisit this at some point in the future.</p>
+<p>OK, it’s time to have a look at the first part of the algorithm where
+we “synchronise” the list heads so we can then walk them in
+lockstep.</p>
+<pre class="dafny"><code>  // &quot;Synchronise&quot; lists heads
+
+  var m: nat := Length(a);
+  var n: nat := Length(b);
+  var pa, pb := a, b;
+  
+  if m &gt; n
+  {
+    while m &gt; n
+      invariant pa != null ==&gt; pa.Valid()
+      invariant m == ElemCount(pa) &amp;&amp; n == ElemCount(pb)
+      invariant m &gt;= n
+      decreases ListRepr(pa)
+    {
+      pa := pa.next;
+      m := m - 1;
+    }
+
+    assert m &lt;= n;
+    assert pa != null ==&gt; pa in ListRepr(a);
+    assert pb != null ==&gt; pb in ListRepr(b);
+  } else if n &gt; m {
+    while n &gt; m
+      invariant pb != null ==&gt; pb.Valid()
+      invariant m == ElemCount(pa) &amp;&amp; n == ElemCount(pb)
+      invariant n &gt;= m
+      decreases ListRepr(pb)
+    {
+      pb := pb.next;
+      n := n - 1;
+    }
+
+    assert n &lt;= m;
+    assert pa != null ==&gt; pa in ListRepr(a);
+    assert pb != null ==&gt; pb in ListRepr(b);
+  }</code></pre>
+<p>We keep the lengths of the lists in <code>m</code> and <code>n</code>
+respectively, and use <code>pa</code> and <code>pb</code> to iterate
+over them. I won’t show the definition of <code>Length</code> here, but
+it’s what you’d expect.</p>
+<p>I’ve had to add an explicit <code>if</code> around the two loops to
+convince Dafny that the loop invariants hold on entry in the loops. To
+be honest I think that’s reasonable, and it makes the algorithm easier
+to understand at the cost of an extra check.</p>
+<p>The loop invariants make sure <code>m</code> and <code>n</code> stay
+in sync with the lengths of the lists as <code>pa</code> and
+<code>pb</code>. The important point here is that call to
+<code>Valid</code> together with the
+<code>decreases ListRepr(...)</code> clause allow Dafny to prove that
+the list makes progress at each step, and eventually terminates. I’m
+don’t know about you but I find this pretty cool.</p>
+<p>The assertions are not strictly necessary, but I like to have sanity
+checks thrown in.</p>
+<p>On to the main loop. Before we enter the loop we have <span
+class="math inline"><em>m</em> ≤ <em>n</em> ∧ <em>n</em> ≤ <em>m</em></span>.
+Therefore <span class="math inline"><em>m</em> = <em>n</em></span>.
+They’re also both in sync with length of the lists starting in
+<code>pa</code> and <code>pb</code>.</p>
+<pre class="dafny"><code>  // Find the intersection point
+
+  assert m == ElemCount(pa) &amp;&amp; n == ElemCount(pb) &amp;&amp; m == n;
+  assert pa != null ==&gt; pa in ListRepr(a);
+  assert pb != null ==&gt; pb in ListRepr(b);
+
+  while pa != pb
+    invariant pa != null ==&gt; pa.Valid()
+    invariant pb != null ==&gt; pb.Valid()
+    invariant m == ElemCount(pa) &amp;&amp; n == ElemCount(pb) &amp;&amp; m == n
+    decreases ListRepr(pa), ListRepr(pb)
+  {
+    pa := pa.next;
+    pb := pb.next;
+    m := m - 1;
+    n := n - 1;
+  }
+
+  assert pa == pb;
+
+  r := pa;</code></pre>
+<p>The loop invariants make sure that <code>m</code> and <code>n</code>
+stay in sync with the lists as well as with each other. This is why we
+don’t have to explicitly check <code>pa</code> and <code>pb</code> for
+<code>null</code> in the loop test.</p>
+<p>And with that we’re done. I’m still not 100% happy with the
+postcondition on the algorithm. I think I would come up with a stronger
+postcondition if I kept track of the pointers as sequences instead of
+sets, like in the case of <code>Elems</code>, and check that there’s no
+earlier node that the sequences have in common before the result.
+Anyway, this post is long enough as it is.</p>
+<p>I’ve been meaning to play with theorem proving for a while, and this
+was a nice excuse to do so. It was a mostly enjoyable exercise, and
+Dafny seems like a nice language to start exploring the field.</p>
+<section class="footnotes footnotes-end-of-document"
+role="doc-endnotes">
+<hr />
+<ol>
+<li id="fn1" role="doc-endnote"><p>In logic expressions the operators
+have the same meaning as in C. <code>|...|</code> stands for the length
+of a collection of things, and <code>==&gt;</code> for logical
+implication.<a href="#fnref1" class="footnote-back"
+role="doc-backlink">↩︎</a></p></li>
+<li id="fn2" role="doc-endnote"><p>Actually each node has its own set
+that is a subset of the one in the node pointing to it. Kind of like
+Russian nesting dolls.<a href="#fnref2" class="footnote-back"
+role="doc-backlink">↩︎</a></p></li>
+</ol>
+</section>
+</body>
+</html>

@@ -1,0 +1,672 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="" xml:lang="">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <meta name="author" content="Alex Muscar" />
+  <meta name="dcterms.date" content="2023-01-04" />
+  <meta name="description" content="Implementing bit set iterators in Go in way too many ways" />
+  <title>A simple problem that isn’t</title>
+  <style>
+    html {
+      line-height: 1.5;
+      font-family: Georgia, serif;
+      font-size: 20px;
+      color: #1a1a1a;
+      background-color: #fdfdfd;
+    }
+    body {
+      margin: 0 auto;
+      max-width: 36em;
+      padding-left: 50px;
+      padding-right: 50px;
+      padding-top: 50px;
+      padding-bottom: 50px;
+      hyphens: auto;
+      overflow-wrap: break-word;
+      text-rendering: optimizeLegibility;
+      font-kerning: normal;
+    }
+    @media (max-width: 600px) {
+      body {
+        font-size: 0.9em;
+        padding: 1em;
+      }
+      h1 {
+        font-size: 1.8em;
+      }
+    }
+    @media print {
+      body {
+        background-color: transparent;
+        color: black;
+        font-size: 12pt;
+      }
+      p, h2, h3 {
+        orphans: 3;
+        widows: 3;
+      }
+      h2, h3, h4 {
+        page-break-after: avoid;
+      }
+    }
+    p {
+      margin: 1em 0;
+    }
+    a {
+      color: #1a1a1a;
+    }
+    a:visited {
+      color: #1a1a1a;
+    }
+    img {
+      max-width: 100%;
+    }
+    h1, h2, h3, h4, h5, h6 {
+      margin-top: 1.4em;
+    }
+    h5, h6 {
+      font-size: 1em;
+      font-style: italic;
+    }
+    h6 {
+      font-weight: normal;
+    }
+    ol, ul {
+      padding-left: 1.7em;
+      margin-top: 1em;
+    }
+    li > ol, li > ul {
+      margin-top: 0;
+    }
+    blockquote {
+      margin: 1em 0 1em 1.7em;
+      padding-left: 1em;
+      border-left: 2px solid #e6e6e6;
+      color: #606060;
+    }
+    code {
+      font-family: CascadiaCode,monospace;
+      font-size: 85%;
+      margin: 0;
+    }
+    pre {
+      margin: 1em 0;
+      overflow: auto;
+    }
+    pre code {
+      padding: 0;
+      overflow: visible;
+      overflow-wrap: normal;
+    }
+    .sourceCode {
+     background-color: transparent;
+     overflow: visible;
+    }
+    hr {
+      background-color: #1a1a1a;
+      border: none;
+      height: 1px;
+      margin: 1em 0;
+    }
+    table {
+      margin: 1em 0;
+      border-collapse: collapse;
+      width: 100%;
+      overflow-x: auto;
+      display: block;
+      font-variant-numeric: lining-nums tabular-nums;
+    }
+    table caption {
+      margin-bottom: 0.75em;
+    }
+    tbody {
+      margin-top: 0.5em;
+      border-top: 1px solid #1a1a1a;
+      border-bottom: 1px solid #1a1a1a;
+    }
+    th {
+      border-top: 1px solid #1a1a1a;
+      padding: 0.25em 0.5em 0.25em 0.5em;
+    }
+    td {
+      padding: 0.125em 0.5em 0.25em 0.5em;
+    }
+    header {
+      margin-bottom: 4em;
+      text-align: center;
+    }
+    #TOC li {
+      list-style: none;
+    }
+    #TOC ul {
+      padding-left: 1.3em;
+    }
+    #TOC > ul {
+      padding-left: 0;
+    }
+    #TOC a:not(:hover) {
+      text-decoration: none;
+    }
+    code{white-space: pre-wrap;}
+    span.smallcaps{font-variant: small-caps;}
+    span.underline{text-decoration: underline;}
+    div.column{display: inline-block; vertical-align: top; width: 50%;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    ul.task-list{list-style: none;}
+    pre > code.sourceCode { white-space: pre; position: relative; }
+    pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+    pre > code.sourceCode > span:empty { height: 1.2em; }
+    .sourceCode { overflow: visible; }
+    code.sourceCode > span { color: inherit; text-decoration: inherit; }
+    div.sourceCode { margin: 1em 0; }
+    pre.sourceCode { margin: 0; }
+    @media screen {
+    div.sourceCode { overflow: auto; }
+    }
+    @media print {
+    pre > code.sourceCode { white-space: pre-wrap; }
+    pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+    }
+    pre.numberSource code
+      { counter-reset: source-line 0; }
+    pre.numberSource code > span
+      { position: relative; left: -4em; counter-increment: source-line; }
+    pre.numberSource code > span > a:first-child::before
+      { content: counter(source-line);
+        position: relative; left: -1em; text-align: right; vertical-align: baseline;
+        border: none; display: inline-block;
+        -webkit-touch-callout: none; -webkit-user-select: none;
+        -khtml-user-select: none; -moz-user-select: none;
+        -ms-user-select: none; user-select: none;
+        padding: 0 4px; width: 4em;
+        color: #aaaaaa;
+      }
+    pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
+    div.sourceCode
+      {   }
+    @media screen {
+    pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+    }
+    code span.al { color: #ff0000; font-weight: bold; } /* Alert */
+    code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+    code span.at { color: #7d9029; } /* Attribute */
+    code span.bn { color: #40a070; } /* BaseN */
+    code span.bu { color: #008000; } /* BuiltIn */
+    code span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+    code span.ch { color: #4070a0; } /* Char */
+    code span.cn { color: #880000; } /* Constant */
+    code span.co { color: #60a0b0; font-style: italic; } /* Comment */
+    code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+    code span.do { color: #ba2121; font-style: italic; } /* Documentation */
+    code span.dt { color: #902000; } /* DataType */
+    code span.dv { color: #40a070; } /* DecVal */
+    code span.er { color: #ff0000; font-weight: bold; } /* Error */
+    code span.ex { } /* Extension */
+    code span.fl { color: #40a070; } /* Float */
+    code span.fu { color: #06287e; } /* Function */
+    code span.im { color: #008000; font-weight: bold; } /* Import */
+    code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+    code span.kw { color: #007020; font-weight: bold; } /* Keyword */
+    code span.op { color: #666666; } /* Operator */
+    code span.ot { color: #007020; } /* Other */
+    code span.pp { color: #bc7a00; } /* Preprocessor */
+    code span.sc { color: #4070a0; } /* SpecialChar */
+    code span.ss { color: #bb6688; } /* SpecialString */
+    code span.st { color: #4070a0; } /* String */
+    code span.va { color: #19177c; } /* Variable */
+    code span.vs { color: #4070a0; } /* VerbatimString */
+    code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
+    .display.math{display: block; text-align: center; margin: 0.5rem auto;}
+  </style>
+  <link rel="alternate" type="application/rss+xml" title="Alex's website" href="https://muscar.eu/feed.xml"/>
+  <style>
+  @font-face{
+      font-family: "CascadiaCode";
+      src: url('/static/CascadiaCode.ttf') format('truetype');
+  }
+
+  html {
+  	background-color: #F8F4E7;
+  	color: #552800;
+  }
+
+  #home-link {
+  	text-align: center;
+  	font-size: 18pt;
+  	font-weight: bold;
+  }
+  </style>
+</head>
+<body>
+<div id="home-link">
+	<a href="https://muscar.eu">muscar.eu</a>
+</div>
+<header id="title-block-header">
+<h1 class="title">A simple problem that isn’t</h1>
+<p class="author">Alex Muscar</p>
+<p class="date">January 4, 2023</p>
+</header>
+<p>Some problems seem simple at first blush. Recently, I wanted to add
+an iterator to a bit set implemented in Go. The bit set implementation
+itself is what you’d expect. I lifted it from section 6.5 of <a
+href="https://www.goodreads.com/book/show/25080953-the-go-programming-language">“The
+Go Programming Language”</a>.</p>
+<p>You can find the code for this post <a
+href="https://github.com/muscar/bit-sets">here</a>.</p>
+<p>Have a look at the <a
+href="https://github.com/muscar/bit-sets/blob/main/internal/bitset/bitset.go#L31">implementation</a>
+of <code>BitSet</code> before you read on. The code in this post is
+written for bit sets represented using 64 bit words. That’s why you’ll
+see the magic constant 64 all over the shop.</p>
+<h2 id="a-problem-specification">A problem specification</h2>
+<p>Given the following specification:</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode go"><code class="sourceCode go"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> Iterator <span class="kw">interface</span> <span class="op">{</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Next tries to advance the iterator to the next value in the set.</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>    <span class="co">// It returns `true` if there was a next value, `false` otherwise.</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>    <span class="co">//</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Next must be called *before* the first call to Current.</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>    Next<span class="op">()</span> <span class="dt">bool</span></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Current returns the element of the set that the iterator is pointing at.</span></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>    Current<span class="op">()</span> <span class="dt">int</span></span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>how would you implement an iterator for the bit set?</p>
+<h2 id="the-straightforward-implementation">The straightforward
+implementation</h2>
+<p>In languages with built-in support for generators, the solution is
+straightforward. Here’s a C# implementation:</p>
+<div class="sourceCode" id="cb2"><pre
+class="sourceCode csharp"><code class="sourceCode cs"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> IEnumerable<span class="op">&lt;</span><span class="dt">int</span><span class="op">&gt;</span> <span class="fu">NaiveIter</span><span class="op">()</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>    <span class="kw">for</span> <span class="op">(</span><span class="dt">var</span> i <span class="op">=</span> <span class="dv">0</span><span class="op">;</span> i <span class="op">&lt;</span> words<span class="op">.</span><span class="fu">Length</span> <span class="op">*</span> <span class="dv">64</span><span class="op">;</span> i<span class="op">++)</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>        <span class="kw">if</span> <span class="op">(</span><span class="fu">Has</span><span class="op">(</span>i<span class="op">))</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>        <span class="op">{</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>            <span class="kw">yield</span> <span class="kw">return</span> i<span class="op">;</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>Since Go doesn’t have generators, we have to roll our own. That’s not
+too hard, though. We just need to remember where we left off on the
+previous iteration of the loop, and pick up from there. At this point,
+someone is bound to suggest using channels. But channels aren’t free as
+we’ll see in the <a href="#benchmarks">benchmarks</a> section.</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode go"><code class="sourceCode go"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> NaiveIter <span class="kw">struct</span> <span class="op">{</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>    s   <span class="op">*</span>BitSet</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>    off <span class="dt">int</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>s <span class="op">*</span>BitSet<span class="op">)</span> Iter<span class="op">()</span> <span class="op">*</span>NaiveIter <span class="op">{</span></span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="op">&amp;</span>Iter<span class="op">{</span>s<span class="op">,</span> <span class="op">-</span><span class="dv">1</span><span class="op">}</span></span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>it <span class="op">*</span>NaiveIter<span class="op">)</span> Next<span class="op">()</span> <span class="dt">bool</span> <span class="op">{</span></span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a>    it<span class="op">.</span>off<span class="op">++</span></span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> it<span class="op">.</span>off <span class="op">&lt;</span> it<span class="op">.</span>s<span class="op">.</span>Cap<span class="op">()</span> <span class="op">&amp;&amp;</span> <span class="op">!</span>it<span class="op">.</span>s<span class="op">.</span>Has<span class="op">(</span>it<span class="op">.</span>off<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a>        it<span class="op">.</span>off<span class="op">++</span></span>
+<span id="cb3-14"><a href="#cb3-14" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb3-15"><a href="#cb3-15" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> it<span class="op">.</span>off <span class="op">&lt;</span> it<span class="op">.</span>s<span class="op">.</span>Cap<span class="op">()</span></span>
+<span id="cb3-16"><a href="#cb3-16" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb3-17"><a href="#cb3-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-18"><a href="#cb3-18" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>it <span class="op">*</span>NaiveIter<span class="op">)</span> Current<span class="op">()</span> <span class="dt">int</span> <span class="op">{</span></span>
+<span id="cb3-19"><a href="#cb3-19" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> it<span class="op">.</span>off</span>
+<span id="cb3-20"><a href="#cb3-20" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>There are two things to note about this iterator. First, we
+initialize <code>off</code> to -1–we start just before the first
+element. Second, we increment <code>it.off</code> <em>before</em> the
+loop.<a href="#fn1" class="footnote-ref" id="fnref1"
+role="doc-noteref"><sup>1</sup></a> We want to make progress on every
+call to <code>Next</code>. <a href="#fn2" class="footnote-ref"
+id="fnref2" role="doc-noteref"><sup>2</sup></a><sup>,</sup> <a
+href="#fn3" class="footnote-ref" id="fnref3"
+role="doc-noteref"><sup>3</sup></a></p>
+<p>Both the C# and the Go iterator have the same problem, though: they
+don’t handle sparse bit sets very efficiently.</p>
+<h2 id="an-implementation-that-deals-with-sparse-bit-sets">An
+implementation that deals with sparse bit sets</h2>
+<p>Let’s try to clarify the problem we are solving: we have a bit set
+represented as an array of words; the set is sparse, so we have long
+runs of zeroes; we don’t want to look at every single zero bit.</p>
+<p>The obvious approach is to skip consecutive zeroes. Given the set’s
+representation, it seems sensible to try to skip entire words if they
+are zero. But, as with many simple ideas, the devil is in the details.
+You’ve seen the straightforward implementation. How would you implement
+an optimised iterator?</p>
+<h3 id="a-first-try">A first try</h3>
+<p>In addition to the offset of the current bit in a word, the optimised
+iterator tracks the offset of the current word. Tracking it will help us
+skip zero words. The data structure now looks like this:</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode go"><code class="sourceCode go"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> Iter <span class="kw">struct</span> <span class="op">{</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>    s          <span class="op">*</span>BitSet</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>    woff<span class="op">,</span> boff <span class="dt">int</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>s <span class="op">*</span>BitSet<span class="op">)</span> Iter<span class="op">()</span> <span class="op">*</span>Iter <span class="op">{</span></span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="op">&amp;</span>Iter<span class="op">{</span>s<span class="op">,</span> <span class="dv">0</span><span class="op">,</span> <span class="op">-</span><span class="dv">1</span><span class="op">}</span></span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>The iterator is initially positioned just before the first bit of the
+first word.</p>
+<p>Getting the current element is easy. It’s just the inverse of the
+formula in <code>Add</code>:</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode go"><code class="sourceCode go"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>it <span class="op">*</span>Iter<span class="op">)</span> Current<span class="op">()</span> <span class="dt">int</span> <span class="op">{</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> it<span class="op">.</span>woff<span class="op">*</span><span class="dv">64</span> <span class="op">+</span> it<span class="op">.</span>boff</span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>Now for the interesting part, the implementation of
+<code>Next</code>:</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode go"><code class="sourceCode go"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>it <span class="op">*</span>Iter<span class="op">)</span> Next<span class="op">()</span> <span class="dt">bool</span> <span class="op">{</span></span></code></pre></div>
+<p>We start by tackling the termination condition. If there are no more
+words to check in the set representation, we are done:</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode go"><code class="sourceCode go"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> it<span class="op">.</span>woff <span class="op">&gt;=</span> <span class="bu">len</span><span class="op">(</span>it<span class="op">.</span>s<span class="op">.</span>words<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="ot">false</span></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span></code></pre></div>
+<p>Next, we want to make progress. We can pretty much take the loop from
+the previous implementation, and adapt it slightly:</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode go"><code class="sourceCode go"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>    <span class="co">// ensure we make progress</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>    it<span class="op">.</span>boff<span class="op">++</span></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>    <span class="co">// find the least significant one bit in the current word</span></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> it<span class="op">.</span>boff <span class="op">&lt;</span> <span class="dv">64</span> <span class="op">&amp;&amp;</span> it<span class="op">.</span>s<span class="op">.</span>words<span class="op">[</span>it<span class="op">.</span>woff<span class="op">]&amp;(</span><span class="dv">1</span><span class="op">&lt;&lt;</span>it<span class="op">.</span>boff<span class="op">)</span> <span class="op">==</span> <span class="dv">0</span> <span class="op">{</span></span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>        it<span class="op">.</span>boff<span class="op">++</span></span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span></code></pre></div>
+<p>This loop looks for the least significant one bit in the current
+word. When it terminates, one of two conditions holds: either
+<code>it.boff</code> is 64–all the bits were zero–and we need to move to
+the next non-zero word. Or we’ve found a one bit, and we found the next
+element.</p>
+<div class="sourceCode" id="cb9"><pre class="sourceCode go"><code class="sourceCode go"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>    <span class="co">// we found the next element</span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> it<span class="op">.</span>boff <span class="op">&lt;</span> <span class="dv">64</span> <span class="op">{</span></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="ot">true</span></span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>    <span class="co">// we need to find the next non-zero word</span></span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a>    it<span class="op">.</span>boff <span class="op">=</span> <span class="dv">0</span></span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a>    it<span class="op">.</span>woff<span class="op">++</span></span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> it<span class="op">.</span>woff <span class="op">&lt;</span> <span class="bu">len</span><span class="op">(</span>it<span class="op">.</span>s<span class="op">.</span>words<span class="op">)</span> <span class="op">&amp;&amp;</span> it<span class="op">.</span>s<span class="op">.</span>words<span class="op">[</span>it<span class="op">.</span>woff<span class="op">]</span> <span class="op">==</span> <span class="dv">0</span> <span class="op">{</span></span>
+<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a>        it<span class="op">.</span>woff<span class="op">++</span></span>
+<span id="cb9-10"><a href="#cb9-10" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span></code></pre></div>
+<p>When this second loop terminates it’s either because we ran out of
+words– we found all the elements, we return <code>false</code>. Or
+because we found a non-zero word, and we’re not done yet. We’re
+positioned at the beginning of a word, but we still have to find the
+least significant one bit.</p>
+<div class="sourceCode" id="cb10"><pre
+class="sourceCode go"><code class="sourceCode go"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>    <span class="co">// we found all the elements</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> it<span class="op">.</span>woff <span class="op">&gt;=</span> <span class="bu">len</span><span class="op">(</span>it<span class="op">.</span>s<span class="op">.</span>words<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="ot">false</span></span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>    <span class="co">// we found a non-zero word; find the least significant bit</span></span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> it<span class="op">.</span>s<span class="op">.</span>words<span class="op">[</span>it<span class="op">.</span>woff<span class="op">]&amp;(</span><span class="dv">1</span><span class="op">&lt;&lt;</span>it<span class="op">.</span>boff<span class="op">)</span> <span class="op">==</span> <span class="dv">0</span> <span class="op">{</span></span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a>        it<span class="op">.</span>boff<span class="op">++</span></span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="ot">true</span></span>
+<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>And with this, we’re done. But the code could be nicer.</p>
+<h3 id="improving-the-code">Improving the code</h3>
+<p><code>Next</code>’s epilogue is almost identical to its prologue.
+Let’s start there. We <em>could</em> replace the final <code>if</code>
+and <code>for</code> statements with a jump to the top of the
+function–they do the same thing.<a href="#fn4" class="footnote-ref"
+id="fnref4" role="doc-noteref"><sup>4</sup></a> And in some cases
+<code>goto</code>s are not that harmful. But here it’s just an unguarded
+loop in disguise.</p>
+<div class="sourceCode" id="cb11"><pre
+class="sourceCode go"><code class="sourceCode go"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>it <span class="op">*</span>Iter<span class="op">)</span> Next<span class="op">()</span> <span class="dt">bool</span> <span class="op">{</span></span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> <span class="op">{</span></span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>        <span class="co">// we&#39;re done with the whole set</span></span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> it<span class="op">.</span>woff <span class="op">&gt;=</span> <span class="bu">len</span><span class="op">(</span>it<span class="op">.</span>s<span class="op">.</span>words<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a>            <span class="cf">return</span> <span class="ot">false</span></span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a>        <span class="co">// ensure we make progress</span></span>
+<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a>        it<span class="op">.</span>boff<span class="op">++</span></span>
+<span id="cb11-9"><a href="#cb11-9" aria-hidden="true" tabindex="-1"></a>        <span class="co">// find the least significant one bit in the current word</span></span>
+<span id="cb11-10"><a href="#cb11-10" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> it<span class="op">.</span>boff <span class="op">&lt;</span> <span class="dv">64</span> <span class="op">&amp;&amp;</span> it<span class="op">.</span>s<span class="op">.</span>words<span class="op">[</span>it<span class="op">.</span>woff<span class="op">]&amp;(</span><span class="dv">1</span><span class="op">&lt;&lt;</span>it<span class="op">.</span>boff<span class="op">)</span> <span class="op">==</span> <span class="dv">0</span> <span class="op">{</span></span>
+<span id="cb11-11"><a href="#cb11-11" aria-hidden="true" tabindex="-1"></a>            it<span class="op">.</span>boff<span class="op">++</span></span>
+<span id="cb11-12"><a href="#cb11-12" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb11-13"><a href="#cb11-13" aria-hidden="true" tabindex="-1"></a>        <span class="co">// we found a set bit</span></span>
+<span id="cb11-14"><a href="#cb11-14" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> it<span class="op">.</span>boff <span class="op">&lt;</span> <span class="dv">64</span> <span class="op">{</span></span>
+<span id="cb11-15"><a href="#cb11-15" aria-hidden="true" tabindex="-1"></a>            <span class="cf">return</span> <span class="ot">true</span></span>
+<span id="cb11-16"><a href="#cb11-16" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb11-17"><a href="#cb11-17" aria-hidden="true" tabindex="-1"></a>        <span class="co">// we need to find the next non-zero word</span></span>
+<span id="cb11-18"><a href="#cb11-18" aria-hidden="true" tabindex="-1"></a>        it<span class="op">.</span>boff <span class="op">=</span> <span class="op">-</span><span class="dv">1</span></span>
+<span id="cb11-19"><a href="#cb11-19" aria-hidden="true" tabindex="-1"></a>        it<span class="op">.</span>woff<span class="op">++</span></span>
+<span id="cb11-20"><a href="#cb11-20" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> it<span class="op">.</span>woff <span class="op">&lt;</span> <span class="bu">len</span><span class="op">(</span>it<span class="op">.</span>s<span class="op">.</span>words<span class="op">)</span> <span class="op">&amp;&amp;</span> it<span class="op">.</span>s<span class="op">.</span>words<span class="op">[</span>it<span class="op">.</span>woff<span class="op">]</span> <span class="op">==</span> <span class="dv">0</span> <span class="op">{</span></span>
+<span id="cb11-21"><a href="#cb11-21" aria-hidden="true" tabindex="-1"></a>            it<span class="op">.</span>woff<span class="op">++</span></span>
+<span id="cb11-22"><a href="#cb11-22" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb11-23"><a href="#cb11-23" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb11-24"><a href="#cb11-24" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>Did you notice it? We’re resetting <code>it.boff</code> to -1, not 0,
+like in the previous version. That’s because we advance
+<code>it.boff</code> before the bit scanning loop.</p>
+<p>We can further clean this up by merging the first <code>if</code>
+with the outer <code>for</code>:</p>
+<div class="sourceCode" id="cb12"><pre
+class="sourceCode go"><code class="sourceCode go"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>it <span class="op">*</span>Iter<span class="op">)</span> Next<span class="op">()</span> <span class="dt">bool</span> <span class="op">{</span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> it<span class="op">.</span>woff <span class="op">&lt;</span> <span class="bu">len</span><span class="op">(</span>it<span class="op">.</span>s<span class="op">.</span>words<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>        <span class="co">// ensure we make progress</span></span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>        it<span class="op">.</span>boff<span class="op">++</span></span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>        <span class="co">// find the least significant one bit in the current word</span></span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> it<span class="op">.</span>boff <span class="op">&lt;</span> <span class="dv">64</span> <span class="op">&amp;&amp;</span> it<span class="op">.</span>s<span class="op">.</span>words<span class="op">[</span>it<span class="op">.</span>woff<span class="op">]&amp;(</span><span class="dv">1</span><span class="op">&lt;&lt;</span>it<span class="op">.</span>boff<span class="op">)</span> <span class="op">==</span> <span class="dv">0</span> <span class="op">{</span></span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a>            it<span class="op">.</span>boff<span class="op">++</span></span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a>        <span class="co">// we found the next element</span></span>
+<span id="cb12-10"><a href="#cb12-10" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> it<span class="op">.</span>boff <span class="op">&lt;</span> <span class="dv">64</span> <span class="op">{</span></span>
+<span id="cb12-11"><a href="#cb12-11" aria-hidden="true" tabindex="-1"></a>            <span class="cf">return</span> <span class="ot">true</span></span>
+<span id="cb12-12"><a href="#cb12-12" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb12-13"><a href="#cb12-13" aria-hidden="true" tabindex="-1"></a>        <span class="co">// we need to find the next non-zero word</span></span>
+<span id="cb12-14"><a href="#cb12-14" aria-hidden="true" tabindex="-1"></a>        it<span class="op">.</span>boff <span class="op">=</span> <span class="op">-</span><span class="dv">1</span></span>
+<span id="cb12-15"><a href="#cb12-15" aria-hidden="true" tabindex="-1"></a>        it<span class="op">.</span>woff<span class="op">++</span></span>
+<span id="cb12-16"><a href="#cb12-16" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> it<span class="op">.</span>woff <span class="op">&lt;</span> <span class="bu">len</span><span class="op">(</span>it<span class="op">.</span>s<span class="op">.</span>words<span class="op">)</span> <span class="op">&amp;&amp;</span> it<span class="op">.</span>s<span class="op">.</span>words<span class="op">[</span>it<span class="op">.</span>woff<span class="op">]</span> <span class="op">==</span> <span class="dv">0</span> <span class="op">{</span></span>
+<span id="cb12-17"><a href="#cb12-17" aria-hidden="true" tabindex="-1"></a>            it<span class="op">.</span>woff<span class="op">++</span></span>
+<span id="cb12-18"><a href="#cb12-18" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb12-19"><a href="#cb12-19" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb12-20"><a href="#cb12-20" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="ot">false</span></span>
+<span id="cb12-21"><a href="#cb12-21" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>But do we need to skip all the zero words at once? No, we can let the
+main loop do it word by word–it’s already doing that with
+<code>it.woff++</code>. If we refactor the bit scanning loop just
+slightly, we can test for zero words, and get rid of the final
+<code>for</code>.</p>
+<p>The <code>it.woff &lt; len(it.s.words)</code> check is covered by the
+main loop. We just need to roll <code>it.s.words[it.woff] == 0</code>
+into the bit scanning loop’s condition. But <code>it.boff &lt; 64</code>
+and <code>it.s.words[it.woff] == 0</code> check almost the same thing:
+the (remaining) sub-interval is empty.</p>
+<div class="sourceCode" id="cb13"><pre
+class="sourceCode go"><code class="sourceCode go"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="co">// </span><span class="al">NOTE</span><span class="co">: wrong!</span></span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>it <span class="op">*</span>NotGreatIter1<span class="op">)</span> Next<span class="op">()</span> <span class="dt">bool</span> <span class="op">{</span></span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> it<span class="op">.</span>woff <span class="op">&lt;</span> <span class="bu">len</span><span class="op">(</span>it<span class="op">.</span>s<span class="op">.</span>words<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>        <span class="co">// ensure we make progress</span></span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a>        it<span class="op">.</span>boff<span class="op">++</span></span>
+<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a>        <span class="co">// find the least significant bit in the current word</span></span>
+<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> it<span class="op">.</span>s<span class="op">.</span>words<span class="op">[</span>it<span class="op">.</span>woff<span class="op">]</span> <span class="op">!=</span> <span class="dv">0</span> <span class="op">&amp;&amp;</span> it<span class="op">.</span>s<span class="op">.</span>words<span class="op">[</span>it<span class="op">.</span>woff<span class="op">]&amp;(</span><span class="dv">1</span><span class="op">&lt;&lt;</span>it<span class="op">.</span>boff<span class="op">)</span> <span class="op">==</span> <span class="dv">0</span> <span class="op">{</span></span>
+<span id="cb13-8"><a href="#cb13-8" aria-hidden="true" tabindex="-1"></a>            it<span class="op">.</span>boff<span class="op">++</span></span>
+<span id="cb13-9"><a href="#cb13-9" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb13-10"><a href="#cb13-10" aria-hidden="true" tabindex="-1"></a>        <span class="co">// we found a set bit</span></span>
+<span id="cb13-11"><a href="#cb13-11" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> it<span class="op">.</span>boff <span class="op">&lt;</span> <span class="dv">64</span> <span class="op">{</span></span>
+<span id="cb13-12"><a href="#cb13-12" aria-hidden="true" tabindex="-1"></a>            <span class="cf">return</span> <span class="ot">true</span></span>
+<span id="cb13-13"><a href="#cb13-13" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb13-14"><a href="#cb13-14" aria-hidden="true" tabindex="-1"></a>        <span class="co">// we need to find the next non-zero word</span></span>
+<span id="cb13-15"><a href="#cb13-15" aria-hidden="true" tabindex="-1"></a>        it<span class="op">.</span>boff <span class="op">=</span> <span class="op">-</span><span class="dv">1</span></span>
+<span id="cb13-16"><a href="#cb13-16" aria-hidden="true" tabindex="-1"></a>        it<span class="op">.</span>woff<span class="op">++</span></span>
+<span id="cb13-17"><a href="#cb13-17" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb13-18"><a href="#cb13-18" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="ot">false</span></span>
+<span id="cb13-19"><a href="#cb13-19" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>The comment gives it away, this version doesn’t work. It’s going to
+get stuck in an infinite loop because <code>it.s.words[it.woff]</code>
+never changes. We can address this by keeping a copy of the current word
+that we shift right as we scan it. It will eventually become zero, and
+as a nice bonus we have the next bit to check handy as the least
+significant bit in the word.</p>
+<div class="sourceCode" id="cb14"><pre
+class="sourceCode go"><code class="sourceCode go"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> Iter <span class="kw">struct</span> <span class="op">{</span></span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>    s          <span class="op">*</span>BitSet</span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>    word       <span class="dt">uint64</span></span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>    woff<span class="op">,</span> boff <span class="dt">int</span></span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>s <span class="op">*</span>BitSet<span class="op">)</span> Iter<span class="op">()</span> <span class="op">*</span>Iter <span class="op">{</span></span>
+<span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="op">&amp;</span>Iter<span class="op">{</span>s<span class="op">,</span> s<span class="op">.</span>words<span class="op">[</span><span class="dv">0</span><span class="op">],</span> <span class="dv">0</span><span class="op">,</span> <span class="op">-</span><span class="dv">1</span><span class="op">}</span></span>
+<span id="cb14-9"><a href="#cb14-9" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb14-10"><a href="#cb14-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-11"><a href="#cb14-11" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>it <span class="op">*</span>Iter<span class="op">)</span> Next<span class="op">()</span> <span class="dt">bool</span> <span class="op">{</span></span>
+<span id="cb14-12"><a href="#cb14-12" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> it<span class="op">.</span>woff <span class="op">&lt;</span> <span class="bu">len</span><span class="op">(</span>it<span class="op">.</span>s<span class="op">.</span>words<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb14-13"><a href="#cb14-13" aria-hidden="true" tabindex="-1"></a>        <span class="co">// ensure we make progress</span></span>
+<span id="cb14-14"><a href="#cb14-14" aria-hidden="true" tabindex="-1"></a>        it<span class="op">.</span>boff<span class="op">++</span></span>
+<span id="cb14-15"><a href="#cb14-15" aria-hidden="true" tabindex="-1"></a>        <span class="co">// find the least significant bit in the current word</span></span>
+<span id="cb14-16"><a href="#cb14-16" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> it<span class="op">.</span>word <span class="op">!=</span> <span class="dv">0</span> <span class="op">&amp;&amp;</span> it<span class="op">.</span>word<span class="op">&amp;</span><span class="dv">0x01</span> <span class="op">==</span> <span class="dv">0</span> <span class="op">{</span></span>
+<span id="cb14-17"><a href="#cb14-17" aria-hidden="true" tabindex="-1"></a>            it<span class="op">.</span>boff<span class="op">++</span></span>
+<span id="cb14-18"><a href="#cb14-18" aria-hidden="true" tabindex="-1"></a>            it<span class="op">.</span>word <span class="op">&gt;&gt;=</span> <span class="dv">1</span></span>
+<span id="cb14-19"><a href="#cb14-19" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb14-20"><a href="#cb14-20" aria-hidden="true" tabindex="-1"></a>        <span class="co">// we found a set bit</span></span>
+<span id="cb14-21"><a href="#cb14-21" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> it<span class="op">.</span>word <span class="op">&gt;</span> <span class="dv">0</span> <span class="op">{</span></span>
+<span id="cb14-22"><a href="#cb14-22" aria-hidden="true" tabindex="-1"></a>            it<span class="op">.</span>word <span class="op">&gt;&gt;=</span> <span class="dv">1</span></span>
+<span id="cb14-23"><a href="#cb14-23" aria-hidden="true" tabindex="-1"></a>            <span class="cf">return</span> <span class="ot">true</span></span>
+<span id="cb14-24"><a href="#cb14-24" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb14-25"><a href="#cb14-25" aria-hidden="true" tabindex="-1"></a>        <span class="co">// we need to find the next non-zero word</span></span>
+<span id="cb14-26"><a href="#cb14-26" aria-hidden="true" tabindex="-1"></a>        it<span class="op">.</span>boff <span class="op">=</span> <span class="op">-</span><span class="dv">1</span></span>
+<span id="cb14-27"><a href="#cb14-27" aria-hidden="true" tabindex="-1"></a>        it<span class="op">.</span>woff<span class="op">++</span></span>
+<span id="cb14-28"><a href="#cb14-28" aria-hidden="true" tabindex="-1"></a>        it<span class="op">.</span>word <span class="op">=</span> it<span class="op">.</span>s<span class="op">.</span>words<span class="op">[</span>it<span class="op">.</span>woff<span class="op">]</span></span>
+<span id="cb14-29"><a href="#cb14-29" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb14-30"><a href="#cb14-30" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="ot">false</span></span>
+<span id="cb14-31"><a href="#cb14-31" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>Not only is the code cleaner, but it’s also more efficient. The inner
+loop test got cheaper: we compare the current word with zero, and only
+check the least significant bit instead of building the mask on the fly
+by shifting.<a href="#fn5" class="footnote-ref" id="fnref5"
+role="doc-noteref"><sup>5</sup></a></p>
+<p>Notice that <code>it.word &gt;&gt;= 1</code> just before we return
+<code>true</code>? Because we exit the bit scanning loop <em>before</em>
+we shift the current word right, in the next iteration we’d be looking
+at the same bit. This is another one of those “ensure we make progress”
+measures.</p>
+<p>There’s one more problem to solve. On the very last go around the
+loop, we’ll do an out-of-bounds read from the <code>it.s.words</code>
+array. We could add an explicit check, but that’s a price we pay on
+every iteration of the loop for a case that only happens once. Not
+great.</p>
+<p>Instead, we pad the words array. We allocate one extra word that gets
+read during the last iteration of the loop. And we update the main loop
+condition to take into account the padding.</p>
+<div class="sourceCode" id="cb15"><pre
+class="sourceCode go"><code class="sourceCode go"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>it <span class="op">*</span>Iter<span class="op">)</span> Next<span class="op">()</span> <span class="dt">bool</span> <span class="op">{</span></span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> it<span class="op">.</span>woff <span class="op">&lt;</span> <span class="bu">len</span><span class="op">(</span>it<span class="op">.</span>s<span class="op">.</span>words<span class="op">)-</span><span class="dv">1</span> <span class="op">{</span></span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>        <span class="co">// ensure we make progress</span></span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a>        it<span class="op">.</span>boff<span class="op">++</span></span>
+<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a>        <span class="co">// find the least significant bit in the current word</span></span>
+<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> it<span class="op">.</span>word <span class="op">!=</span> <span class="dv">0</span> <span class="op">&amp;&amp;</span> it<span class="op">.</span>word<span class="op">&amp;</span><span class="dv">0x01</span> <span class="op">==</span> <span class="dv">0</span> <span class="op">{</span></span>
+<span id="cb15-7"><a href="#cb15-7" aria-hidden="true" tabindex="-1"></a>            it<span class="op">.</span>boff<span class="op">++</span></span>
+<span id="cb15-8"><a href="#cb15-8" aria-hidden="true" tabindex="-1"></a>            it<span class="op">.</span>word <span class="op">&gt;&gt;=</span> <span class="dv">1</span></span>
+<span id="cb15-9"><a href="#cb15-9" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb15-10"><a href="#cb15-10" aria-hidden="true" tabindex="-1"></a>        <span class="co">// we found a set bit</span></span>
+<span id="cb15-11"><a href="#cb15-11" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> it<span class="op">.</span>word <span class="op">&gt;</span> <span class="dv">0</span> <span class="op">{</span></span>
+<span id="cb15-12"><a href="#cb15-12" aria-hidden="true" tabindex="-1"></a>            it<span class="op">.</span>word <span class="op">&gt;&gt;=</span> <span class="dv">1</span></span>
+<span id="cb15-13"><a href="#cb15-13" aria-hidden="true" tabindex="-1"></a>            <span class="cf">return</span> <span class="ot">true</span></span>
+<span id="cb15-14"><a href="#cb15-14" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb15-15"><a href="#cb15-15" aria-hidden="true" tabindex="-1"></a>        <span class="co">// we need to find the next non-zero word</span></span>
+<span id="cb15-16"><a href="#cb15-16" aria-hidden="true" tabindex="-1"></a>        it<span class="op">.</span>boff <span class="op">=</span> <span class="op">-</span><span class="dv">1</span></span>
+<span id="cb15-17"><a href="#cb15-17" aria-hidden="true" tabindex="-1"></a>        it<span class="op">.</span>woff<span class="op">++</span></span>
+<span id="cb15-18"><a href="#cb15-18" aria-hidden="true" tabindex="-1"></a>        it<span class="op">.</span>word <span class="op">=</span> it<span class="op">.</span>s<span class="op">.</span>words<span class="op">[</span>it<span class="op">.</span>woff<span class="op">]</span></span>
+<span id="cb15-19"><a href="#cb15-19" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb15-20"><a href="#cb15-20" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="ot">false</span></span>
+<span id="cb15-21"><a href="#cb15-21" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>We’re done. We have an iterator that should handle sparse sets
+efficiently. But how efficient is it compared to the naive iterator we
+started with?</p>
+<h3 id="benchmarks">Benchmarks</h3>
+<p>I ran several benchmarks on my ageing 2014 macbook pro. All the
+benchmarks use a set with room for 1000000 elements with various load
+factors. The benchmarks just iterate over the elements and sum them
+up.</p>
+<p>I’ve also implemented the naive and optimised versions of the
+iterators with channels for the benchmarks. You can find the code for
+the implementations and the benchmarks in the <a
+href="https://github.com/muscar/bit-sets">repo</a>. The benchmark names
+should be fairly obvious: the part after “Benchmark” is the iterator
+flavour; “Dense” means the set if full, while “SparseN” means the set
+has every N<sup>th</sup> element set. So, for example,
+“BenchmarkOptIterSparse1000” benchmarks the optimised implementation of
+the iterator with every 1000<sup>th</sup> element set. That’s a 0.1%
+load factor.</p>
+<p>Let’s look at the results:</p>
+<pre><code>cpu: Intel(R) Core(TM) i5-4278U CPU @ 2.60GHz
+BenchmarkNaiveIterDense-4                    271       4004419 ns/op         483 B/op          0 allocs/op
+BenchmarkOptIterDense-4                      364       3880946 ns/op         360 B/op          0 allocs/op
+BenchmarkChanNaiveIterDense-4                  5     249094165 ns/op       26360 B/op          2 allocs/op
+BenchmarkChanOptIterDense-4                    5     223480939 ns/op       26584 B/op          3 allocs/op
+BenchmarkNaiveIterSparse100-4                382       3168522 ns/op         343 B/op          0 allocs/op
+BenchmarkOptIterSparse100-4                 1482        880012 ns/op          88 B/op          0 allocs/op
+BenchmarkNaiveIterSparse1000-4               391       3078779 ns/op         335 B/op          0 allocs/op
+BenchmarkOptIterSparse1000-4                8874        122877 ns/op          14 B/op          0 allocs/op
+BenchmarkNaiveIterSparse10000-4              394       3052418 ns/op         332 B/op          0 allocs/op
+BenchmarkOptIterSparse10000-4              24816         48760 ns/op           5 B/op          0 allocs/op
+BenchmarkChanNaiveIterSparse100-4            182       6479458 ns/op         864 B/op          2 allocs/op
+BenchmarkChanOptIterSparse100-4              452       2969189 ns/op         430 B/op          2 allocs/op
+BenchmarkChanNaiveIterSparse1000-4           312       3826812 ns/op         562 B/op          2 allocs/op
+BenchmarkChanOptIterSparse1000-4            3910        290776 ns/op         172 B/op          2 allocs/op
+BenchmarkChanNaiveIterSparse10000-4          354       4126216 ns/op         506 B/op          2 allocs/op
+BenchmarkChanOptIterSparse10000-4          24386         49496 ns/op         141 B/op          2 allocs/op</code></pre>
+<p>For full sets, the naive and optimised iterators are in the same
+ballpark. The optimised iterator tended to come faster in most runs, but
+the difference is most likely down to noise.</p>
+<p>The channel implementations on the other hand were about 70 times
+slower. While I expected using channels to come with a performance
+penalty, this is more expensive than I would have guessed.</p>
+<p>As the load factor decreases, and we have longer zero spans, the
+optimised iterator does consistently better. The naive implementation
+takes about the same time for every run, which is not surprising.</p>
+<p>The channel iterators get significantly faster. The optimised
+implementation is faster than the naive non-channel implementation when
+the load factor is 0.1%.</p>
+<h2 id="conclusions">Conclusions</h2>
+<p>What did we learn? First, that seemingly simple problems, can get
+quite tricky when you try to implement them. For me, the devil was in
+the details with this algorithm. Trying to get all the edge cases right
+took some time and fiddling with the code.</p>
+<p>Second, you can start with a less than ideal algorithm, and
+iteratively improve it by a combination of insight and (almost)
+mechanical transformations.</p>
+<p>Third, tools matter. It took me about 5 minutes to write the C#
+implementation of the optimised algorithm:</p>
+<div class="sourceCode" id="cb17"><pre
+class="sourceCode csharp"><code class="sourceCode cs"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> IEnumerable<span class="op">&lt;</span><span class="dt">int</span><span class="op">&gt;</span> <span class="fu">OptIter</span><span class="op">()</span></span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>    <span class="kw">for</span> <span class="op">(</span><span class="dt">var</span> word <span class="op">=</span> <span class="dv">0</span><span class="op">;</span> word <span class="op">&lt;</span> words<span class="op">.</span><span class="fu">Length</span><span class="op">;</span> word<span class="op">++)</span></span>
+<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a>        <span class="dt">var</span> segment <span class="op">=</span> words<span class="op">[</span>word<span class="op">];</span></span>
+<span id="cb17-6"><a href="#cb17-6" aria-hidden="true" tabindex="-1"></a>        <span class="kw">for</span> <span class="op">(</span><span class="dt">var</span> bit <span class="op">=</span> <span class="dv">0</span><span class="op">;</span> segment <span class="op">&gt;</span> <span class="dv">0</span><span class="op">;</span> bit<span class="op">++,</span> segment <span class="op">&gt;&gt;=</span> <span class="dv">1</span><span class="op">)</span></span>
+<span id="cb17-7"><a href="#cb17-7" aria-hidden="true" tabindex="-1"></a>        <span class="op">{</span></span>
+<span id="cb17-8"><a href="#cb17-8" aria-hidden="true" tabindex="-1"></a>            <span class="kw">if</span> <span class="op">((</span>segment <span class="op">&amp;</span> <span class="bn">0x01</span><span class="op">)</span> <span class="op">!=</span> <span class="dv">0</span><span class="op">)</span></span>
+<span id="cb17-9"><a href="#cb17-9" aria-hidden="true" tabindex="-1"></a>            <span class="op">{</span></span>
+<span id="cb17-10"><a href="#cb17-10" aria-hidden="true" tabindex="-1"></a>                <span class="kw">yield</span> <span class="kw">return</span> word <span class="op">*</span> <span class="dv">64</span> <span class="op">+</span> bit<span class="op">;</span></span>
+<span id="cb17-11"><a href="#cb17-11" aria-hidden="true" tabindex="-1"></a>            <span class="op">}</span></span>
+<span id="cb17-12"><a href="#cb17-12" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb17-13"><a href="#cb17-13" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb17-14"><a href="#cb17-14" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>Granted, this was after I’d already written the Go implementation. It
+took somewhat longer to come up with the optimised version in Go.</p>
+<section class="footnotes footnotes-end-of-document"
+role="doc-endnotes">
+<hr />
+<ol>
+<li id="fn1" role="doc-endnote"><p>If we initialize <code>off</code> to
+0, we skip the very first element in the set. That’s why we have to call
+<code>Next</code> before the first call to <code>Current</code>.<a
+href="#fnref1" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn2" role="doc-endnote"><p>If we leave out <code>it.off++</code>
+before the loop, the iterator gets stuck on the first element in the
+set.<a href="#fnref2" class="footnote-back"
+role="doc-backlink">↩︎</a></p></li>
+<li id="fn3" role="doc-endnote"><p>This duplication is somewhat
+unfortunate, but we have to do it like this because Go lacks C’s
+<code>do/while</code> or Pascal’s <code>repeat/until</code>.<a
+href="#fnref3" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn4" role="doc-endnote"><p>Well, not quite the same. The loop in
+the preamble does one extra test per iteration.<a href="#fnref4"
+class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn5" role="doc-endnote"><p>We could further move the
+<code>it.boff++</code> statements in the inner <code>for</code> loop.<a
+href="#fnref5" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+</ol>
+</section>
+</body>
+</html>

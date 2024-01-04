@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="" xml:lang=""><head>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+  <meta charset="utf-8">
+  <meta name="generator" content="pandoc">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+  <meta name="author" content="Alex Muscar">
+  <meta name="dcterms.date" content="2023-04-29">
+  <meta name="description" content="Exploring coroutines in SPARC">
+  <title>Coroutines in SPARC assembly</title>
+  <style>
+    html {
+      line-height: 1.5;
+      font-family: Georgia, serif;
+      font-size: 20px;
+      color: #1a1a1a;
+      background-color: #fdfdfd;
+    }
+    body {
+      margin: 0 auto;
+      max-width: 36em;
+      padding-left: 50px;
+      padding-right: 50px;
+      padding-top: 50px;
+      padding-bottom: 50px;
+      hyphens: auto;
+      overflow-wrap: break-word;
+      text-rendering: optimizeLegibility;
+      font-kerning: normal;
+    }
+    @media (max-width: 600px) {
+      body {
+        font-size: 0.9em;
+        padding: 1em;
+      }
+      h1 {
+        font-size: 1.8em;
+      }
+    }
+    @media print {
+      body {
+        background-color: transparent;
+        color: black;
+        font-size: 12pt;
+      }
+      p, h2, h3 {
+        orphans: 3;
+        widows: 3;
+      }
+      h2, h3, h4 {
+        page-break-after: avoid;
+      }
+    }
+    p {
+      margin: 1em 0;
+    }
+    a {
+      color: #1a1a1a;
+    }
+    a:visited {
+      color: #1a1a1a;
+    }
+    img {
+      max-width: 100%;
+    }
+    h1, h2, h3, h4, h5, h6 {
+      margin-top: 1.4em;
+    }
+    h5, h6 {
+      font-size: 1em;
+      font-style: italic;
+    }
+    h6 {
+      font-weight: normal;
+    }
+    ol, ul {
+      padding-left: 1.7em;
+      margin-top: 1em;
+    }
+    li > ol, li > ul {
+      margin-top: 0;
+    }
+    blockquote {
+      margin: 1em 0 1em 1.7em;
+      padding-left: 1em;
+      border-left: 2px solid #e6e6e6;
+      color: #606060;
+    }
+    code {
+      font-family: CascadiaCode,monospace;
+      font-size: 85%;
+      margin: 0;
+    }
+    pre {
+      margin: 1em 0;
+      overflow: auto;
+    }
+    pre code {
+      padding: 0;
+      overflow: visible;
+      overflow-wrap: normal;
+    }
+    .sourceCode {
+     background-color: transparent;
+     overflow: visible;
+    }
+    hr {
+      background-color: #1a1a1a;
+      border: none;
+      height: 1px;
+      margin: 1em 0;
+    }
+    table {
+      margin: 1em 0;
+      border-collapse: collapse;
+      width: 100%;
+      overflow-x: auto;
+      display: block;
+      font-variant-numeric: lining-nums tabular-nums;
+    }
+    table caption {
+      margin-bottom: 0.75em;
+    }
+    tbody {
+      margin-top: 0.5em;
+      border-top: 1px solid #1a1a1a;
+      border-bottom: 1px solid #1a1a1a;
+    }
+    th {
+      border-top: 1px solid #1a1a1a;
+      padding: 0.25em 0.5em 0.25em 0.5em;
+    }
+    td {
+      padding: 0.125em 0.5em 0.25em 0.5em;
+    }
+    header {
+      margin-bottom: 4em;
+      text-align: center;
+    }
+    #TOC li {
+      list-style: none;
+    }
+    #TOC ul {
+      padding-left: 1.3em;
+    }
+    #TOC > ul {
+      padding-left: 0;
+    }
+    #TOC a:not(:hover) {
+      text-decoration: none;
+    }
+    code{white-space: pre-wrap;}
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: min(4vw, 1.5em);}
+    div.column{flex: auto; overflow-x: auto;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    ul.task-list{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1.6em;
+      vertical-align: middle;
+    }
+    .display.math{display: block; text-align: center; margin: 0.5rem auto;}
+  </style>
+  <link rel="alternate" type="application/rss+xml" title="Alex's website" href="https://muscar.eu/feed.xml">
+  <style>
+  @font-face{
+      font-family: "CascadiaCode";
+      src: url('/static/CascadiaCode.ttf') format('truetype');
+  }
+
+  html {
+  	background-color: #F8F4E7;
+  	color: #552800;
+  }
+
+  #home-link {
+  	text-align: center;
+  	font-size: 18pt;
+  	font-weight: bold;
+  }
+  </style>
+  <!--[if lt IE 9]>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/html5shiv/3.7.3/html5shiv-printshiv.min.js"></script>
+  <![endif]-->
+<link href="data:text/css,%3Ais(%5Bid*%3D'google_ads_iframe'%5D%2C%5Bid*%3D'taboola-'%5D%2C.taboolaHeight%2C.taboola-placeholder%2C%23credential_picker_container%2C%23credentials-picker-container%2C%23credential_picker_iframe%2C%5Bid*%3D'google-one-tap-iframe'%5D%2C%23google-one-tap-popup-container%2C.google-one-tap-modal-div%2C%23amp_floatingAdDiv%2C%23ez-content-blocker-container)%20%7Bdisplay%3Anone!important%3Bmin-height%3A0!important%3Bheight%3A0!important%3B%7D" rel="stylesheet" type="text/css"></head>
+<body>
+<div id="home-link">
+	<a href="https://muscar.eu/">muscar.eu</a>
+</div>
+<header id="title-block-header">
+<h1 class="title">Coroutines in SPARC assembly</h1>
+<p class="author">Alex Muscar</p>
+<p class="date">April 29, 2023</p>
+</header>
+<p>A while back I picked up <a href="https://www.goodreads.com/book/show/1881878.SPARC_Architecture_Assembly_Language_Programming_and_C">a
+book</a> on the SPARC architecture from a second hand bookshop. To
+justify the fiver I spent, I figured I might as well read it.<a href="#fn1" class="footnote-ref" id="fnref1" role="doc-noteref"><sup>1</sup></a> While reading the chapter on
+subroutines, I realised that SPARC offers an elegant mechanism for
+coroutine linking.</p>
+<p>I won’t assume you’re familiar with SPARC. I’ll explain the relevant
+details as I go along. It will help, though, if you’re at least somewhat
+familiar with the assembly language of some other architecture.</p>
+<p>You can find the code from this post <a href="https://github.com/muscar/co-sparc">here</a>.</p>
+<h2 id="on-coroutines">On coroutines</h2>
+<p>Coroutines are not a new concept.<a href="#fn2" class="footnote-ref" id="fnref2" role="doc-noteref"><sup>2</sup></a> SIMULA is one of the
+earliest languages to support.<a href="#fn3" class="footnote-ref" id="fnref3" role="doc-noteref"><sup>3</sup></a> In the past decade, more
+and more languages have added support for coroutines of one sort or
+another.</p>
+<p>The term is somewhat overloaded, so let’s clarify it. A coroutine is
+a generalization of a subroutine. A subroutine has <em>one</em> entry
+point and <em>one</em> exit point. It’s called once, does its job, and
+returns.</p>
+<p>A coroutine has <em>many</em> entry and exit points. That is, its
+execution can be <em>suspended</em> and <em>resumed</em>. Execution
+resumes where it left off when the coroutine was suspended.</p>
+<p>If a coroutine can choose who it <em>yields</em> to, it’s called
+<em>symmetric</em>. If it can only yield to the most recent caller, then
+it’s an <em>asymmetric</em> coroutine.</p>
+<h2 id="the-implementation">The implementation</h2>
+<p>The code targets Linux for 64-bit SPARC. There’s nothing 64-bit
+specific about the implementation except the system call numbers. I used
+the <code>as</code> and <code>ld</code> binaries that come with the
+SPARC cross-build tools and QEMU To run the resulting binary.</p>
+<h3 id="miscellany">Miscellany</h3>
+<p>We begin by defining some useful constants and a macro for system
+calls.</p>
+<pre class="assembly"><code>.equ SYS_exit, 1
+.equ SYS_write, 4
+
+.equ STDOUT, 1
+
+.macro syscall no
+    mov \no, %g1
+    t 0x6d
+.endm</code></pre>
+<p>System calls are implemented using <em>software traps</em> on SPARC.
+The <code>t</code> instruction triggers a software trap. This works
+similarly to interrupts on x86, i.e., the operating system sets up a
+<em>trap table</em> that is then used to call the appropriate trap
+handler.</p>
+<p>Arguments for system calls go in the <em>global registers</em>,
+starting with <code>%g1</code>.</p>
+<h3 id="an-aside-on-sparc-registers">An aside on SPARC registers</h3>
+<p>SPARC registers are grouped in four categories:</p>
+<ul>
+<li><p><em>Global registers:</em> <code>%g0</code>-<code>%g7</code>;
+<code>%g0</code> is always zero when read, and writes to it are
+ignored;</p></li>
+<li><p><em>In registers:</em> <code>%i0</code>-<code>%i7</code>; used
+for receiving parameters and returning results to callers;</p></li>
+<li><p><em>Out registers:</em> <code>%o0</code>-<code>%o7</code>; used
+for passing arguments and receiving results from callees; and</p></li>
+<li><p><em>Local registers:</em> <code>%l0</code>-<code>%l7</code>; used
+for temporary results and other bookkeeping for the current
+routine.</p></li>
+</ul>
+<p>In addition to the above, SPARC also has a few special registers: the
+stack pointer, <code>%sp</code>; the frame pointer, <code>%fp</code>;
+and the link register, <code>%lr</code>.</p>
+<p>On SPARC each function gets its own set of in, out and local
+registers. This is implemented using a mechanism known as <a href="https://icps.u-strasbg.fr/people/loechner/public_html/enseignement/SPARC/sparcstack.html">register
+windows</a>.</p>
+<p>When a function gets called, the out registers of the caller become
+the in parameters of the callee. The local and out registers of the
+callee are fresh.</p>
+<h3 id="more-miscellany">More miscellany</h3>
+<p>We’re going to use <code>%g2</code>, <code>%g3</code> and
+<code>%g6</code> to keep the “state” of our coroutines. We have to tell
+<code>as</code> we intend to use them as scratch registers.</p>
+<pre class="assembly"><code>.register %g2, #scratch
+.register %g3, #scratch
+.register %g6, #scratch</code></pre>
+<p>We’re not going to link to <code>libc</code> so our entry point is
+called <code>_start</code>.</p>
+<pre class="assembly"><code>    .section ".text"
+    .align 4
+
+    .global _start
+
+_start:</code></pre>
+<h3 id="function-prologues">Function prologues</h3>
+<p>The first thing we do is to set up the stack frame for the main
+coroutine. We’re not going to use any stack space, but on SPARC a
+routine has to allocate at least enough space for some registers to be
+spilled. That’s a consequence of SPARC’s register windows design.</p>
+<p>Since there’s only so many transistors you can fit on a sliver of
+silicone, SPARC doesn’t have infinitely many physical registers to give
+dedicated local and out registers to every routine invocation. When the
+processor runs out of physical registers, it spills the registers used
+by one of the routines higher on the call stack.<a href="#fn4" class="footnote-ref" id="fnref4" role="doc-noteref"><sup>4</sup></a></p>
+<pre class="assembly"><code>    save %sp, -64, %sp</code></pre>
+<p><code>save</code> <em>adds</em> -64 bytes to <code>%sp</code>–like on
+x86, the stack grows downwards on SPARC. It also performs the register
+window shift that maps the out registers of the caller to the in
+registers of the callee, and allocates new local and out registers. This
+might lead to spilling, as mentioned above. That sure is a lot of work
+for a RISC instruction.</p>
+<h3 id="finally-coroutines">Finally coroutines</h3>
+<p>Our program has three coroutines, imaginatively named
+<code>_start</code>, <code>a</code> and <code>b</code>.
+<code>_start</code> calls <code>a</code>, who prints <code>a1</code>,
+yields to <code>b</code> who prints <code>b1</code> then yields to
+<code>a</code>, who prints <code>a2</code> then yields back to
+<code>b</code>; <code>b</code> then prints <code>b2</code>, returns to
+<code>a</code>, who returns to <code>_start</code>. Finally,
+<code>_start</code> just exits. Or, in spiffy ASCII art (printed message
+in brackets):</p>
+<pre><code>_start -&gt; a ("a1") -&gt; b ("b1") -&gt; a ("a2") -&gt; b ("b2") -&gt; a -&gt; _start</code></pre>
+<p>Remember we reserved <code>%g2</code> and <code>%g3</code> for the
+coroutine states? Now we’re going to use them. We store the address of
+the first instruction of <code>a</code> in <code>%g2</code> and the
+address of the first instruction of <code>b</code> to <code>%g3</code>.
+That’s why I put quotes around the word “state”–the coroutine state is
+just its instruction pointer :^).</p>
+<pre class="assembly"><code>    set a, %g2
+    set b, %g3</code></pre>
+<h3 id="yielding">Yielding</h3>
+<p>With the state set up, we can start the coroutine dance by calling
+<code>a</code>:</p>
+<pre class="assembly"><code>    jmpl %g2, %g6
+    add %g6, 8, %g6</code></pre>
+<p>OK, let’s unpack this. <code>jmpl</code> jumps to the address in its
+first register argument, and stores the address of the <em>program
+counter</em> in the second register. In this case we’re jumping to the
+address in <code>%g2</code>–that is <code>a</code>’s first instruction.
+We store the return address in <code>%g6</code>, the main coroutine’s
+state.</p>
+<p>What’s up with the <code>add</code> after <code>jmpl</code>? That
+instruction is called the branch instruction’s <em>delay slot</em>. I’m
+not going to go into details about delay slots, but the gist is that, by
+the time the CPU knows where to jump, it would have already started work
+on the next instruction–the one in the delay slot. No sense in wasting
+that work, so it will execute it anyway. The hope was that a
+“sufficiently smart” compiler wold manage to put a useful instruction in
+the delay slot, thus mitigating the cost of branches.</p>
+<p>The instruction in the delay slot is executed <em>before</em> any of
+the instructions in the target of the jump. We use it to adjust the
+location where <code>_start</code> resumes its execution. Since
+<code>jmpl</code> stores the value of the program counter in its second
+register argument, we’d end up with <code>%g6</code> pointing at the
+<code>jmpl</code> instruction itself. That would cause an infinite loop,
+so we adjust <code>%g6</code> to resume execution after the
+<code>jmpl</code>-<code>add</code> pair of instructions.<a href="#fn5" class="footnote-ref" id="fnref5" role="doc-noteref"><sup>5</sup></a></p>
+<p>Raymond Chen covers MIPS <a href="https://devblogs.microsoft.com/oldnewthing/20180411-00/?p=98485">delay</a>
+<a href="https://devblogs.microsoft.com/oldnewthing/20180412-00/?p=98495">slots</a>
+in some detail.</p>
+<p>The last thing <code>_start</code> does is to return to the operating
+system.</p>
+<pre class="assembly"><code>    syscall SYS_exit</code></pre>
+<h3 id="the-other-coroutines">The other coroutines</h3>
+<p>While <code>_start</code>.. er.. starts <code>a</code> by yielding to
+it, <code>a</code> and <code>b</code> are more interesting since they
+yield to each other. So let’s look at <code>a</code>.</p>
+<p>We start with the <em>prologue</em> code, just like in
+<code>_start</code>:</p>
+<pre class="assembly"><code>a:
+    save %sp, -64, %sp</code></pre>
+<p>and then print the first message:</p>
+<pre class="assembly"><code>    mov STDOUT, %o0
+    set msg_a1, %o1
+    mov (end_msg_a1-msg_a1), %o2
+    syscall SYS_write</code></pre>
+<p>The printing code is not really interesting. We just set the out
+registers and call the <code>write</code> system call.</p>
+<p>And it’s time to yield to <code>b</code> for the first time:</p>
+<pre class="assembly"><code>    jmpl %g3, %g2
+    add %g2, 8, %g2</code></pre>
+<p>This should look familiar: we jump to
+<code>%g3</code>–<code>b</code>’s instruction pointer–and store the
+return address in <code>%g2</code>–<code>a</code>’s instruction
+pointer.</p>
+<p>When we resume <code>a</code>, we’ll start executing the code to
+print the second message:</p>
+<pre><code>    mov STDOUT, %o0
+    set msg_a2, %o1
+    mov (end_msg_a2-msg_a2), %o2
+    syscall SYS_write</code></pre>
+<p>Then we resume <code>b</code> again:</p>
+<pre class="assembly"><code>    jmpl %g3, %g2
+    add %g2, 8, %g2</code></pre>
+<p>and finally return to <code>_start</code>:</p>
+<pre><code>    mov 10, %i0
+    jmpl %g6, %g0
+    restore</code></pre>
+<h3 id="function-epilogues">Function epilogues</h3>
+<p>The return value of the coroutine is <code>10</code>. But why is it
+in an input register? Shouldn’t the return value be an output? Remember
+that <code>save</code> maps the caller’s outputs to the callee’s inputs?
+Since the return value should be in the <code>%o0</code> register of the
+caller that means we have to put it in <code>%i0</code> in the
+callee.</p>
+<p>Here we use <code>%g0</code> to ignore the instruction pointer saved
+by <code>jmpl</code> since we’re done with the coroutine.</p>
+<p>Finally, <code>restore</code> undoes what <code>save</code> did: it
+restores the stack pointer and unmaps the registers. Since it’s in
+<code>jmpl</code>’s delay slot, it’ll get executed before we actually
+return from <code>a</code>.</p>
+<h3 id="the-rest-of-the-code">The rest of the code</h3>
+<p><code>b</code> is pretty much the same as <code>a</code>. The main
+difference is that the last thing it does is to return <code>20</code>
+to <code>a</code>. Note that <code>%g2</code> and <code>%g3</code> have
+swapped places in the <code>jmpl</code> instructions.</p>
+<pre class="assembly"><code>b:
+    save %sp, -64, %sp
+
+    mov STDOUT, %o0
+    set msg_b1, %o1
+    mov (end_msg_b1-msg_b1), %o2
+    syscall SYS_write
+
+    jmpl %g2, %g3
+    add %g3, 8, %g3
+
+    mov STDOUT, %o0
+    set msg_b2, %o1
+    mov (end_msg_b2-msg_b2), %o2
+    syscall SYS_write
+
+    mov 20, %i0
+    jmpl %g2, %g0
+    restore</code></pre>
+<p>The messages we print live in the <code>.data</code> section:</p>
+<pre class="assembly"><code>    .section ".data"
+    .align 4
+
+msg_a1: .ascii "a1\n"
+end_msg_a1:
+
+msg_a2: .ascii "a2\n"
+end_msg_a2:
+
+msg_b1: .ascii "b1\n"
+end_msg_b1:
+
+msg_b2: .ascii "b2\n"
+end_msg_b2:</code></pre>
+<p>And with this we’re done.</p>
+<h3 id="quick-quiz">Quick quiz</h3>
+<p>What is the exit code of the program? Why? Can you make it return the
+value returned from either of the coroutines?</p>
+<h2 id="conclusion">Conclusion</h2>
+<p>I find the implementation of coroutines particularly neat on SPARC.
+It only takes two instructions, one of which you is almost free–the
+<code>add</code> in the delay slot. This is possible because SPARC’s
+flexibility when it comes to storing return addresses on jumps. On x86
+we’d have to use a relatively ugly hack to get the resume address.</p>
+<p>This simplicity is only possible because of some simplifying
+assumptions I made. I use global registers to store the return addresses
+for coroutines. Those are a scarce resource even on SPARC, and this
+approach won’t scale to more than 2 or 3 coroutines. We could work
+around this by storing the return address in memory.</p>
+<p>We were careful to nest the coroutines nicely, i.e.,
+<code>_start</code> had a longer lifetime than <code>a</code> who had a
+longer lifetime than <code>b</code>. That avoided awkward issues with
+the stack pointer. We could even have used stack variables if we were
+careful to save and restore the appropriate frame pointer. If we want to
+lift the restriction on coroutine lifetime nesting, we’d have to
+allocate separate memory for their stacks, and be careful about saving
+and restoring the frame pointer. That’s not hard, but it’s definitely
+more complicated than the simple approach in this post.</p>
+<p>That’s enough for one post. Maybe I’ll explore coroutines with stacks
+in a future installment.</p>
+<section id="footnotes" class="footnotes footnotes-end-of-document" role="doc-endnotes">
+<hr>
+<ol>
+<li id="fn1"><p>What better way to polish your résumé than reading a 20+
+year old book on a 30+ year old ISA that’s going to be sunset in 5 or so
+years :^)?<a href="#fnref1" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn2"><p>According to Knuth, the term has been around since
+1958.<a href="#fnref2" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn3"><p>Fun fact: early C++ had support for coroutines because
+Bjarne’s background in simulation software written in SIMULA.<a href="#fnref3" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn4"><p>That’s a <em>very</em> hand wavy explanation of what
+actually goes on. The actual process is quite involved. The processor
+tracks the current register window index and triggers a trap on
+overflow. The trap code uses the frame pointer to decide what stack
+frame to use to spill the registers.<a href="#fnref4" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn5"><p>The code on GitHub has macro definitions for creating,
+yeilding and returning from coroutines.<a href="#fnref5" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+</ol>
+</section>
+
+
+</body></html>

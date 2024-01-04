@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="" xml:lang="">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <meta name="author" content="Alex Muscar" />
+  <meta name="dcterms.date" content="2023-03-18" />
+  <meta name="description" content="Exploring coroutines in SPARC64" />
+  <title>Coroutines in SPARC assembly</title>
+  <style>
+    html {
+      line-height: 1.5;
+      font-family: Georgia, serif;
+      font-size: 20px;
+      color: #1a1a1a;
+      background-color: #fdfdfd;
+    }
+    body {
+      margin: 0 auto;
+      max-width: 36em;
+      padding-left: 50px;
+      padding-right: 50px;
+      padding-top: 50px;
+      padding-bottom: 50px;
+      hyphens: auto;
+      overflow-wrap: break-word;
+      text-rendering: optimizeLegibility;
+      font-kerning: normal;
+    }
+    @media (max-width: 600px) {
+      body {
+        font-size: 0.9em;
+        padding: 1em;
+      }
+      h1 {
+        font-size: 1.8em;
+      }
+    }
+    @media print {
+      body {
+        background-color: transparent;
+        color: black;
+        font-size: 12pt;
+      }
+      p, h2, h3 {
+        orphans: 3;
+        widows: 3;
+      }
+      h2, h3, h4 {
+        page-break-after: avoid;
+      }
+    }
+    p {
+      margin: 1em 0;
+    }
+    a {
+      color: #1a1a1a;
+    }
+    a:visited {
+      color: #1a1a1a;
+    }
+    img {
+      max-width: 100%;
+    }
+    h1, h2, h3, h4, h5, h6 {
+      margin-top: 1.4em;
+    }
+    h5, h6 {
+      font-size: 1em;
+      font-style: italic;
+    }
+    h6 {
+      font-weight: normal;
+    }
+    ol, ul {
+      padding-left: 1.7em;
+      margin-top: 1em;
+    }
+    li > ol, li > ul {
+      margin-top: 0;
+    }
+    blockquote {
+      margin: 1em 0 1em 1.7em;
+      padding-left: 1em;
+      border-left: 2px solid #e6e6e6;
+      color: #606060;
+    }
+    code {
+      font-family: CascadiaCode,monospace;
+      font-size: 85%;
+      margin: 0;
+    }
+    pre {
+      margin: 1em 0;
+      overflow: auto;
+    }
+    pre code {
+      padding: 0;
+      overflow: visible;
+      overflow-wrap: normal;
+    }
+    .sourceCode {
+     background-color: transparent;
+     overflow: visible;
+    }
+    hr {
+      background-color: #1a1a1a;
+      border: none;
+      height: 1px;
+      margin: 1em 0;
+    }
+    table {
+      margin: 1em 0;
+      border-collapse: collapse;
+      width: 100%;
+      overflow-x: auto;
+      display: block;
+      font-variant-numeric: lining-nums tabular-nums;
+    }
+    table caption {
+      margin-bottom: 0.75em;
+    }
+    tbody {
+      margin-top: 0.5em;
+      border-top: 1px solid #1a1a1a;
+      border-bottom: 1px solid #1a1a1a;
+    }
+    th {
+      border-top: 1px solid #1a1a1a;
+      padding: 0.25em 0.5em 0.25em 0.5em;
+    }
+    td {
+      padding: 0.125em 0.5em 0.25em 0.5em;
+    }
+    header {
+      margin-bottom: 4em;
+      text-align: center;
+    }
+    #TOC li {
+      list-style: none;
+    }
+    #TOC ul {
+      padding-left: 1.3em;
+    }
+    #TOC > ul {
+      padding-left: 0;
+    }
+    #TOC a:not(:hover) {
+      text-decoration: none;
+    }
+    code{white-space: pre-wrap;}
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: min(4vw, 1.5em);}
+    div.column{flex: auto; overflow-x: auto;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    ul.task-list{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1.6em;
+      vertical-align: middle;
+    }
+    pre > code.sourceCode { white-space: pre; position: relative; }
+    pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+    pre > code.sourceCode > span:empty { height: 1.2em; }
+    .sourceCode { overflow: visible; }
+    code.sourceCode > span { color: inherit; text-decoration: inherit; }
+    div.sourceCode { margin: 1em 0; }
+    pre.sourceCode { margin: 0; }
+    @media screen {
+    div.sourceCode { overflow: auto; }
+    }
+    @media print {
+    pre > code.sourceCode { white-space: pre-wrap; }
+    pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+    }
+    pre.numberSource code
+      { counter-reset: source-line 0; }
+    pre.numberSource code > span
+      { position: relative; left: -4em; counter-increment: source-line; }
+    pre.numberSource code > span > a:first-child::before
+      { content: counter(source-line);
+        position: relative; left: -1em; text-align: right; vertical-align: baseline;
+        border: none; display: inline-block;
+        -webkit-touch-callout: none; -webkit-user-select: none;
+        -khtml-user-select: none; -moz-user-select: none;
+        -ms-user-select: none; user-select: none;
+        padding: 0 4px; width: 4em;
+        color: #aaaaaa;
+      }
+    pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
+    div.sourceCode
+      {   }
+    @media screen {
+    pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+    }
+    code span.al { color: #ff0000; font-weight: bold; } /* Alert */
+    code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+    code span.at { color: #7d9029; } /* Attribute */
+    code span.bn { color: #40a070; } /* BaseN */
+    code span.bu { color: #008000; } /* BuiltIn */
+    code span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+    code span.ch { color: #4070a0; } /* Char */
+    code span.cn { color: #880000; } /* Constant */
+    code span.co { color: #60a0b0; font-style: italic; } /* Comment */
+    code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+    code span.do { color: #ba2121; font-style: italic; } /* Documentation */
+    code span.dt { color: #902000; } /* DataType */
+    code span.dv { color: #40a070; } /* DecVal */
+    code span.er { color: #ff0000; font-weight: bold; } /* Error */
+    code span.ex { } /* Extension */
+    code span.fl { color: #40a070; } /* Float */
+    code span.fu { color: #06287e; } /* Function */
+    code span.im { color: #008000; font-weight: bold; } /* Import */
+    code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+    code span.kw { color: #007020; font-weight: bold; } /* Keyword */
+    code span.op { color: #666666; } /* Operator */
+    code span.ot { color: #007020; } /* Other */
+    code span.pp { color: #bc7a00; } /* Preprocessor */
+    code span.sc { color: #4070a0; } /* SpecialChar */
+    code span.ss { color: #bb6688; } /* SpecialString */
+    code span.st { color: #4070a0; } /* String */
+    code span.va { color: #19177c; } /* Variable */
+    code span.vs { color: #4070a0; } /* VerbatimString */
+    code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
+    .display.math{display: block; text-align: center; margin: 0.5rem auto;}
+  </style>
+  <link rel="alternate" type="application/rss+xml" title="Alex's website" href="https://muscar.eu/feed.xml"/>
+  <style>
+  @font-face{
+      font-family: "CascadiaCode";
+      src: url('/static/CascadiaCode.ttf') format('truetype');
+  }
+
+  html {
+  	background-color: #F8F4E7;
+  	color: #552800;
+  }
+
+  #home-link {
+  	text-align: center;
+  	font-size: 18pt;
+  	font-weight: bold;
+  }
+  </style>
+  <!--[if lt IE 9]>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/html5shiv/3.7.3/html5shiv-printshiv.min.js"></script>
+  <![endif]-->
+</head>
+<body>
+<div id="home-link">
+	<a href="https://muscar.eu">muscar.eu</a>
+</div>
+<header id="title-block-header">
+<h1 class="title">Coroutines in SPARC assembly</h1>
+<p class="author">Alex Muscar</p>
+<p class="date">March 18, 2023</p>
+</header>
+<p>Recently I picked up a book on the SPARC architecture on a whim from
+a second hand bookshop. To justify the fiver I spent on it, I figured I
+might as well read it.<a href="#fn1" class="footnote-ref" id="fnref1"
+role="doc-noteref"><sup>1</sup></a> As I was making my way through the
+chapter about subroutines, I realised SPARC makes it really easy to
+implement coroutines. The rest of the post covers how you’d go about
+implementing coroutines in SPARC.</p>
+<p>I won’t assume you’re familiar with either SPARC. I’ll explain the
+relevant details as I go along. I will assume, though, that you’re at
+least somewhat faimilar with the assembly language of some
+architecture.</p>
+<p><strong>Warning:</strong> Since this post is basically a whirlwind
+introduction to the SPARC architecture, it’s grown quite long. As such,
+it’s best enjoyed with your hot beverage of choice, at a leisurely
+pace.</p>
+<h2 id="a-few-words-on-coroutines">A few words on coroutines</h2>
+<p>Coroutines have been around for a long time.<a href="#fn2"
+class="footnote-ref" id="fnref2" role="doc-noteref"><sup>2</sup></a> The
+most influential early language to feature coroutines was SIMULA.<a
+href="#fn3" class="footnote-ref" id="fnref3"
+role="doc-noteref"><sup>3</sup></a> In the past decade more and more
+languages have added support for coroutines of one sort or another.</p>
+<p>The term is somewhat overloaded, so let’s clarify it. A coroutine is
+a generalization of a subroutine. A subroutine has <em>one</em> entry
+point and <em>one</em> exit point. It’s called once, does its job, and
+returns.</p>
+<p>A coroutine has <em>multiple</em> entry and exit points. That is, its
+execution can be <em>suspended</em> and <em>resumed</em>. The
+coroutine’s state is <em>persistent</em> between calls, and execution
+resumes where it left off when the coroutine was suspended.</p>
+<p>Depending on whether the coroutine can choose who it <em>yields</em>
+to it’s called <em>symmetric</em> or <em>asymmetric</em>. If it can only
+yield to the nearest caller, then it’s an <em>asymmetric</em> coroutine.
+Think <code>yield</code> in C#. If, instead, it can choose which
+coroutine gets to run, it’s called a <em>symmetric</em> coroutine.</p>
+<p>OK, with that out of the way, let’s jump into the fun bit.</p>
+<h2 id="a-sparc-primer">A SPARC primer</h2>
+<p>SPARC is.. quirky. It was one of the first RISC architectures on the
+market. It’s has relatively few instructions, and they are fairly
+regular. Unlike x86, instructions have a fixed size of 4 bytes.</p>
+<p>Like other RISCs, SPARC is a a load/store architecture. There’s a
+clear distinction between memory operations and arithmetic
+operations.</p>
+<h3 id="subroutines">Subroutines</h3>
+<p>In order to understand coroutines, it’ll help to first have a look at
+routines and their calling convention.</p>
+<p>Throughout this post I’ll be using AT&amp;T syntax. I prefer Intel
+syntax, but <code>as</code> is all I had available on my VM. I also used
+<code>gcc</code> to link my SPARC programs because I coldn’t convince
+<code>ld</code> to create static binaries that NetBSD could run. So our
+main function is called <code>main</code>, like in C:</p>
+<div class="sourceCode" id="cb1"><pre
+class="sourceCode asm"><code class="sourceCode fasm"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>    .<span class="bu">section</span> <span class="st">&quot;.text&quot;</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>    .<span class="bu">align</span> <span class="dv">4</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>    .global main</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="fu">main:</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>    save <span class="op">%</span><span class="kw">sp</span><span class="op">,</span> <span class="op">-</span><span class="dv">128</span><span class="op">,</span> <span class="op">%</span><span class="kw">sp</span></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>    <span class="bu">set</span> a<span class="op">,</span> <span class="op">%</span>g2</span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>    <span class="bu">set</span> b<span class="op">,</span> <span class="op">%</span>g3</span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>    jmpl <span class="op">%</span>g2<span class="op">,</span> <span class="op">%</span>g6</span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>    <span class="bu">add</span> <span class="op">%</span>g6<span class="op">,</span> <span class="dv">8</span><span class="op">,</span> <span class="op">%</span>g6</span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a>    <span class="bu">mov</span> <span class="op">%</span>o0<span class="op">,</span> <span class="op">%</span>i0</span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a>    <span class="cf">ret</span></span>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a>    <span class="pp">restore</span></span></code></pre></div>
+<h3 id="registers">Registers</h3>
+<p>Before we dig into the code, let’s have a look at SPARC’s registers.
+They are grouped in four categories:</p>
+<ul>
+<li><p><em>Global registers:</em> <code>%g0</code>-<code>%g7</code>;
+they are not affected by register window shifts; <code>%g0</code> is
+always zero when read, and writes to it are ignored;</p></li>
+<li><p><em>In registers:</em> <code>%i0</code>-<code>%i7</code>; used
+for receiving parameters and returning results to callers;</p></li>
+<li><p><em>Out registers:</em> <code>%o0</code>-<code>%o7</code>; used
+for passing arguments and receiving results from callees; and</p></li>
+<li><p><em>Local registers:</em> <code>%l0</code>-<code>%l7</code>; used
+for temporary results and other bookeeping for the current
+routine.</p></li>
+</ul>
+<p>There are also a few “special” registers:</p>
+<ul>
+<li><code>%sp</code>: the stack pointer;</li>
+<li><code>%fp</code>: the frame pointer; and</li>
+<li><code>%lr</code>: the link register.</li>
+</ul>
+<p>We’ll have more to say about them in the following sections.</p>
+<h3 id="epilogues">Epilogues</h3>
+<p>Let’s begin our code deep dive with the first instruction,
+<code>save</code>. It’s part of the standard function <em>epilogue</em>
+on SPARC.<a href="#fn4" class="footnote-ref" id="fnref4"
+role="doc-noteref"><sup>4</sup></a> It does two things. First, it
+allocates space for the <em>stack frame</em> of the routine. Second, it
+shifts the <a
+href="https://icps.u-strasbg.fr/people/loechner/public_html/enseignement/SPARC/sparcstack.html">register
+window</a>.</p>
+<p>Let’s talk about the stack frame first, and we’ll get to the register
+window after that. Our routine allocates 128 bytes of stack space for
+its stack frame. On SPARC, the stack must be doubleword aligned, i.e.,
+divisible by 8. <code>save</code> adjusts the stack pointer
+<code>%sp</code> accordingly, <em>and</em> store the <em>old</em> value
+of <code>%sp</code> in <code>%fp</code>.<a href="#fn5"
+class="footnote-ref" id="fnref5" role="doc-noteref"><sup>5</sup></a></p>
+<h3 id="register-windows">Register windows</h3>
+<p>Remember when I said SPARC is qirky? Register windows are one of the
+quirky parts. On every register architecture you have a set of registers
+available to your function–I’ll go over SPARC’s registers shortly. When
+you call another routine you have to make sure that it doesn’t overwrite
+the data in the current routine’s registers. That generally happens by
+coodrinating effort between caller and callee to save and restore the
+registers from memory–usually the stack. Now, memory accesses can are
+considerably slower than fast register accesses, so SPARC’s solution is
+to give each function its own set of registers.</p>
+<p><code>save</code> is resposible for shifting from the caller’s set of
+registers to the callee’s set of registers. Conceptually it shifts a
+window over a contiguous set of registers so the caller and callee have
+different views on what the register names they use actually mean.</p>
+<p>And since a picture is worth a thousand words, the following diagram
+shows an example of window shifting with three hypotetical calls. The
+registers on the left, prefixed with <code>%r</code>, are physical
+registers, i.e., the ones implemented in silicon. To the right we have
+three colour coded register sets. Each window gets its own local and out
+registers, and its in registers are the out registers of its caller,
+renamed.</p>
+<p><img src="assets/SPARC%20register%20windows.png"
+alt="SPARC register windows" />.</p>
+<p>Since there’s only so many transistors you can cram on a piece of
+silicon, SPARC doesn’t have an infinite number of registers. If you call
+enough nested functions it will run out of registers. This is when it
+has to <em>spill</em> the registers to memory–much like programs on
+other arhitectures have to do explicitly–to make room for the new
+function’s registers.</p>
+<p>The registers are saved on the stack pointed by the current windows
+stack pointer. Since you can’t tell when a function is going to cause
+the registers to be spilled, every function has to allocate at least
+enough stack space for the registers to be saved if need be.
+<code>save</code> is an add instruction. That’s why it has a negative
+second operand. <code>main</code>’s epilogue subtracts 128 bytes from
+the previous values of <code>%sp</code>, that is, it deallocates 128
+bytes of stack space.</p>
+<p>That’s sure a lot of work that <code>save</code> does for a RISC
+instruction :^).</p>
+<h3 id="prologues">Prologues</h3>
+<p>Since the epilogue code shifts the register window, the prologue has
+to undo that. That’s what the <code>restore</code> instruction does. It
+shifts back the registers so that they mean the same thing in the caller
+routine as they did before the call.</p>
+<p>The <code>ret</code> instruction doesn’t need a lot of explanation.
+It’s a branch instruction that jumps back to the caller after the call
+instruction that branched to the current routine.</p>
+<p>But if you’re familiar with other assembly languages, the order of
+the instructions is wrong: why does <code>restore</code> come after
+<code>ret</code>? That’s another SPARC peculiarity: <a
+href="https://devblogs.microsoft.com/oldnewthing/20180411-00/?p=98485">delay</a>
+<a
+href="https://devblogs.microsoft.com/oldnewthing/20180412-00/?p=98495">slots</a>.<a
+href="#fn6" class="footnote-ref" id="fnref6"
+role="doc-noteref"><sup>6</sup></a></p>
+<h3 id="delay-slots">Delay slots</h3>
+<p>One of the goals of RISC was to execute one instruction per clock
+cycle.<a href="#fn7" class="footnote-ref" id="fnref7"
+role="doc-noteref"><sup>7</sup></a> To this end, it employed a (now
+classic) five stage <em>pipeline</em>. Without going into too many
+details, an instruction is executed in five stages: fetch, decode,
+execute, memory access, write-back.</p>
+<p>As soon as an instruction has been fetched, it goes in the decode
+phase. By that time, the instruction fetcher is already fetching the
+next instruction. Since a branch instruction can only execute after it’s
+been decoded, there’s an instruction that has already been fetched that
+would be wasted if the branch was taken. This is known as a <em>branch
+hazard</em>. To avoid wasting the fetch and decode work it’s already
+done, SPARC executes the instruction anyway.<a href="#fn8"
+class="footnote-ref" id="fnref8" role="doc-noteref"><sup>8</sup></a>
+That instruction is called the branch instruction’s <em>delay slot</em>.
+The idea is that if the compiler manages to put a useful instruction in
+the delay slot, you can mitigate the cost of branch hazards.</p>
+<p>The diagram below shows a five stage pipeline, with 5 instructions.
+The delay slot has a red background. The branch target instruction has a
+green background.</p>
+<p><img src="assets/SPARC%20delay%20slot.png" alt="Delay slot" />.</p>
+<p>That’s a lot to take in, and I only gave a hight level, hand wavy
+description of pipelines, branch hazards, and delay slots. Here’s an <a
+href="https://www.lighterra.com/papers/modernmicroprocessors/">in-depth
+explanation</a> of what pipelines are, how they work, and the motivation
+behind them.</p>
+<p>In any case, to get back to our example, we use the
+<code>restore</code> instruction to fill the delay slot of the
+<code>ret</code> instruction, which we said is a jump instruction. So
+<code>restore</code> is executed <em>before</em> <code>ret</code>, and
+all is right in the world.</p>
+<p>That covers the epilogue and prologue of <code>main</code>–the first
+and last two instructions. With that out of the way, let’s focus on the
+interesting bit.</p>
+<h3 id="registers-1">Registers</h3>
+<p>SPARC registers are grouped in four categories:</p>
+<ul>
+<li><p><em>Global registers:</em> <code>%g0</code>-<code>%g7</code>;
+they are not affected by register window shifts; <code>%g0</code> is
+always zero when read, and writes to it are ignored;</p></li>
+<li><p><em>In registers:</em> <code>%i0</code>-<code>%i7</code>; used
+for receiving parameters and returning results to callers;</p></li>
+<li><p><em>Out registers:</em> <code>%o0</code>-<code>%o7</code>; used
+for passing arguments and receiving results from callees; and</p></li>
+<li><p><em>Local registers:</em> <code>%l0</code>-<code>%l7</code>; used
+for temporary results and other bookeeping for the current
+routine.</p></li>
+</ul>
+<p>The register window shift affects the input, output and local
+registers. When a register window shift happens as the result of a
+<code>save</code> instruction, the out registers of the caller become
+the input registers of the callee, and the callee get a new set of out
+and local registers.</p>
+<p>And if you thought <code>save</code> is already complex enough,
+there’s one more trick it performs: the source <code>%sp</code> and
+destination <code>%sp</code> are actually different registers. The
+source is in the caller’s register window, whilst the destination
+<code>%sp</code> is in the callee’s register window. That’s how the
+callee can still access the correct stack pointer when the callee
+returns.</p>
+<p>One more thing beore we move on. The <code>%sp</code> register is
+actually an <em>alias</em> for <code>%o6</code>. After a save
+<code>%o6</code> becomes <code>%i6</code>, the frame pointer
+<code>%fp</code>.</p>
+<h3 id="subroutine-linkage">Subroutine linkage</h3>
+<h2 id="coroutines-in-aarch64">Coroutines in Aarch64</h2>
+<h2 id="conclusion">Conclusion</h2>
+<section id="footnotes" class="footnotes footnotes-end-of-document"
+role="doc-endnotes">
+<hr />
+<ol>
+<li id="fn1"><p>What better way to polish your resume than reading a 20+
+year old book on a 30+ year old ISA that’s going to be sunset in 5 or so
+years :^)?<a href="#fnref1" class="footnote-back"
+role="doc-backlink">↩︎</a></p></li>
+<li id="fn2"><p>According to Knuth, the term has been around since
+1958.<a href="#fnref2" class="footnote-back"
+role="doc-backlink">↩︎</a></p></li>
+<li id="fn3"><p>Fun fact: early C++ had support for coroutines because
+Bjarne’s background in simulation software written in SIMULA.<a
+href="#fnref3" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn4"><p>That’s only hlaf true. You can have <em>leaf</em>
+routines that don’t have to shift the register window, and can only use
+a subset of their caller’s registers.<a href="#fnref4"
+class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn5"><p>The stack “grows” downwards, from higher addresses to
+lower addresses.<a href="#fnref5" class="footnote-back"
+role="doc-backlink">↩︎</a></p></li>
+<li id="fn6"><p>Other RISCs have it too, e.g., MIPS.<a href="#fnref6"
+class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn7"><p>On average.<a href="#fnref7" class="footnote-back"
+role="doc-backlink">↩︎</a></p></li>
+<li id="fn8"><p>That doesn’t take into account <em>annuled</em>
+instructions, but we won’t go into that here.<a href="#fnref8"
+class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+</ol>
+</section>
+</body>
+</html>

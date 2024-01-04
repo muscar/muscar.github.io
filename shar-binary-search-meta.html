@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="" xml:lang="">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <meta name="author" content="Alex Muscar" />
+  <meta name="dcterms.date" content="2023-02-18" />
+  <meta name="description" content="Using D’s metaprogramming features to write a beautiful binary search" />
+  <title>Beautiful Binary Search in D</title>
+  <style>
+    html {
+      line-height: 1.5;
+      font-family: Georgia, serif;
+      font-size: 20px;
+      color: #1a1a1a;
+      background-color: #fdfdfd;
+    }
+    body {
+      margin: 0 auto;
+      max-width: 36em;
+      padding-left: 50px;
+      padding-right: 50px;
+      padding-top: 50px;
+      padding-bottom: 50px;
+      hyphens: auto;
+      overflow-wrap: break-word;
+      text-rendering: optimizeLegibility;
+      font-kerning: normal;
+    }
+    @media (max-width: 600px) {
+      body {
+        font-size: 0.9em;
+        padding: 1em;
+      }
+      h1 {
+        font-size: 1.8em;
+      }
+    }
+    @media print {
+      body {
+        background-color: transparent;
+        color: black;
+        font-size: 12pt;
+      }
+      p, h2, h3 {
+        orphans: 3;
+        widows: 3;
+      }
+      h2, h3, h4 {
+        page-break-after: avoid;
+      }
+    }
+    p {
+      margin: 1em 0;
+    }
+    a {
+      color: #1a1a1a;
+    }
+    a:visited {
+      color: #1a1a1a;
+    }
+    img {
+      max-width: 100%;
+    }
+    h1, h2, h3, h4, h5, h6 {
+      margin-top: 1.4em;
+    }
+    h5, h6 {
+      font-size: 1em;
+      font-style: italic;
+    }
+    h6 {
+      font-weight: normal;
+    }
+    ol, ul {
+      padding-left: 1.7em;
+      margin-top: 1em;
+    }
+    li > ol, li > ul {
+      margin-top: 0;
+    }
+    blockquote {
+      margin: 1em 0 1em 1.7em;
+      padding-left: 1em;
+      border-left: 2px solid #e6e6e6;
+      color: #606060;
+    }
+    code {
+      font-family: CascadiaCode,monospace;
+      font-size: 85%;
+      margin: 0;
+    }
+    pre {
+      margin: 1em 0;
+      overflow: auto;
+    }
+    pre code {
+      padding: 0;
+      overflow: visible;
+      overflow-wrap: normal;
+    }
+    .sourceCode {
+     background-color: transparent;
+     overflow: visible;
+    }
+    hr {
+      background-color: #1a1a1a;
+      border: none;
+      height: 1px;
+      margin: 1em 0;
+    }
+    table {
+      margin: 1em 0;
+      border-collapse: collapse;
+      width: 100%;
+      overflow-x: auto;
+      display: block;
+      font-variant-numeric: lining-nums tabular-nums;
+    }
+    table caption {
+      margin-bottom: 0.75em;
+    }
+    tbody {
+      margin-top: 0.5em;
+      border-top: 1px solid #1a1a1a;
+      border-bottom: 1px solid #1a1a1a;
+    }
+    th {
+      border-top: 1px solid #1a1a1a;
+      padding: 0.25em 0.5em 0.25em 0.5em;
+    }
+    td {
+      padding: 0.125em 0.5em 0.25em 0.5em;
+    }
+    header {
+      margin-bottom: 4em;
+      text-align: center;
+    }
+    #TOC li {
+      list-style: none;
+    }
+    #TOC ul {
+      padding-left: 1.3em;
+    }
+    #TOC > ul {
+      padding-left: 0;
+    }
+    #TOC a:not(:hover) {
+      text-decoration: none;
+    }
+    code{white-space: pre-wrap;}
+    span.smallcaps{font-variant: small-caps;}
+    span.underline{text-decoration: underline;}
+    div.column{display: inline-block; vertical-align: top; width: 50%;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    ul.task-list{list-style: none;}
+    pre > code.sourceCode { white-space: pre; position: relative; }
+    pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+    pre > code.sourceCode > span:empty { height: 1.2em; }
+    .sourceCode { overflow: visible; }
+    code.sourceCode > span { color: inherit; text-decoration: inherit; }
+    div.sourceCode { margin: 1em 0; }
+    pre.sourceCode { margin: 0; }
+    @media screen {
+    div.sourceCode { overflow: auto; }
+    }
+    @media print {
+    pre > code.sourceCode { white-space: pre-wrap; }
+    pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+    }
+    pre.numberSource code
+      { counter-reset: source-line 0; }
+    pre.numberSource code > span
+      { position: relative; left: -4em; counter-increment: source-line; }
+    pre.numberSource code > span > a:first-child::before
+      { content: counter(source-line);
+        position: relative; left: -1em; text-align: right; vertical-align: baseline;
+        border: none; display: inline-block;
+        -webkit-touch-callout: none; -webkit-user-select: none;
+        -khtml-user-select: none; -moz-user-select: none;
+        -ms-user-select: none; user-select: none;
+        padding: 0 4px; width: 4em;
+        color: #aaaaaa;
+      }
+    pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
+    div.sourceCode
+      {   }
+    @media screen {
+    pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+    }
+    code span.al { color: #ff0000; font-weight: bold; } /* Alert */
+    code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+    code span.at { color: #7d9029; } /* Attribute */
+    code span.bn { color: #40a070; } /* BaseN */
+    code span.bu { color: #008000; } /* BuiltIn */
+    code span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+    code span.ch { color: #4070a0; } /* Char */
+    code span.cn { color: #880000; } /* Constant */
+    code span.co { color: #60a0b0; font-style: italic; } /* Comment */
+    code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+    code span.do { color: #ba2121; font-style: italic; } /* Documentation */
+    code span.dt { color: #902000; } /* DataType */
+    code span.dv { color: #40a070; } /* DecVal */
+    code span.er { color: #ff0000; font-weight: bold; } /* Error */
+    code span.ex { } /* Extension */
+    code span.fl { color: #40a070; } /* Float */
+    code span.fu { color: #06287e; } /* Function */
+    code span.im { color: #008000; font-weight: bold; } /* Import */
+    code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+    code span.kw { color: #007020; font-weight: bold; } /* Keyword */
+    code span.op { color: #666666; } /* Operator */
+    code span.ot { color: #007020; } /* Other */
+    code span.pp { color: #bc7a00; } /* Preprocessor */
+    code span.sc { color: #4070a0; } /* SpecialChar */
+    code span.ss { color: #bb6688; } /* SpecialString */
+    code span.st { color: #4070a0; } /* String */
+    code span.va { color: #19177c; } /* Variable */
+    code span.vs { color: #4070a0; } /* VerbatimString */
+    code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
+    .display.math{display: block; text-align: center; margin: 0.5rem auto;}
+  </style>
+  <link rel="alternate" type="application/rss+xml" title="Alex's website" href="https://muscar.eu/feed.xml"/>
+  <style>
+  @font-face{
+      font-family: "CascadiaCode";
+      src: url('/static/CascadiaCode.ttf') format('truetype');
+  }
+
+  html {
+  	background-color: #F8F4E7;
+  	color: #552800;
+  }
+
+  #home-link {
+  	text-align: center;
+  	font-size: 18pt;
+  	font-weight: bold;
+  }
+  </style>
+</head>
+<body>
+<div id="home-link">
+	<a href="https://muscar.eu">muscar.eu</a>
+</div>
+<header id="title-block-header">
+<h1 class="title">Beautiful Binary Search in D</h1>
+<p class="author">Alex Muscar</p>
+<p class="date">February 18, 2023</p>
+</header>
+<p><strong>February 28, 2023:</strong> <span class="citation"
+data-cites="tgehr">@tgehr</span> <a
+href="https://old.reddit.com/r/d_language/comments/115k85f/beautiful_binary_search_in_d/ja8mr6y/">posted</a>
+a zero-based version of the algorithm. They also pointed out that my
+original code passed the static arrays by value. I’ve updated the code
+in the post to use <code>ref</code> for the array parameters as well as
+D’s exponentiation operator, <code>^^</code>. <span class="citation"
+data-cites="tgehr">@tgehr</span>’s version also returns the first
+postiion of the element if there are multiple instances, while the one
+in this post returns the last one. Thanks for the suggestions!</p>
+<p><strong>February 18, 2023:</strong> <span class="citation"
+data-cites="schveiguy">@schveiguy</span> <a
+href="https://old.reddit.com/r/d_language/comments/115k85f/beautiful_binary_search_in_d/j925wty/">pointed
+out</a> that the initial approach to determining the static array size
+was overly complicated. I’ve updated the code to incorporate their
+suggestion. Thanks!</p>
+<p>Recently, while I was reading <a
+href="https://www.goodreads.com/book/show/128599.Writing_Efficient_Programs">“Writing
+Efficient Programs”</a>, I came across a beautiful variation of binary
+search and its implementation. In this post I’ll be using D’s
+metaprogramming capabilities to implement a generic version of the
+algorithm.</p>
+<p>For the rest of the post I’m going to assume you’re familiar with
+binary search, and its most common implementation–the bisection method
+using two pointers.</p>
+<h2 id="a-beautiful-algorithm">A beautiful algorithm</h2>
+<p>There are many ways to implement a binary search. The most common is
+probably using a “bisection search”, where we track the subintervals
+using two pointers, one moving from left to right, the other from right
+to left.</p>
+<p>Another variant is the “uniform search”, where instead of using two
+pointers, we use only a single pointer and a “rate of change”, i.e., the
+start and the size of the subintervals. This is more subtle than
+bisection search–which is not trivial by the way. In Knuth’s words:</p>
+<blockquote>
+<p>It is possible to do this, but only if extreme care is paid to the
+details, […]. Simpler approaches are doomed to failure.</p>
+</blockquote>
+<p>On the other hand, uniform search has some advantages. One of them is
+that the the rates of change can be precalculated, and stored in a side
+table. If we get the rate of change calculation right–which is the
+subtle part–the search algorithm is simpler than its cousin using two
+pointers.</p>
+<p>A variation of uniform search is Shar’s algorithm. It does away with
+the side table, and uses power of two interval sizes.</p>
+<p>It starts by comparing the the key we are looking for, <span
+class="math inline"><em>K</em></span>, with <span
+class="math inline"><em>K</em><sub><em>i</em></sub></span>, where <span
+class="math inline"><em>i</em> = 2<sup><em>k</em></sup></span>, <span
+class="math inline"><em>k</em> = ⌊<em>l</em><em>g</em><em>N</em>⌋</span>.
+If <span
+class="math inline"><em>K</em> &lt; <em>K</em><sub><em>i</em></sub></span>,
+the interval sizes are <span
+class="math inline">2<sup><em>k</em> − 1</sup></span>, <span
+class="math inline">2<sup><em>k</em> − 2</sup></span>, <span
+class="math inline">…</span>, <span class="math inline">1</span>, <span
+class="math inline">0</span>. But if <span
+class="math inline"><em>K</em> &gt; <em>K</em><sub><em>i</em></sub></span>,
+we set <span
+class="math inline"><em>i</em> = <em>N</em> − 2<sup><em>l</em></sup> + 1</span>,
+where <span
+class="math inline"><em>l</em> = ⌈<em>l</em><em>g</em>(<em>N</em>−2<sup><em>k</em></sup>+1)⌉</span>,
+adjust the interval pointer, and the interval sizes are <span
+class="math inline">2<sup><em>l</em> − 1</sup></span>, <span
+class="math inline">2<sup><em>l</em> − 2</sup></span>, <span
+class="math inline">…</span>, <span class="math inline">1</span>, <span
+class="math inline">0</span>.</p>
+<p>Shar’s algorithm determines the position of the entry with key <span
+class="math inline"><em>K</em></span> bit by bit. Each test adds one
+more bit. We need one more test, after we’ve determined all the bits, to
+see if the entry is actually in the table.</p>
+<h2 id="a-beautiful-implementation">A beautiful implementation</h2>
+<p>Bentley provides a beautiful version of Shar’s algorithm in his book.
+The code works for tables with 1000 elements. The code in the book is
+written in Pascal, but transliterated to D it looks like this:</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode d"><code class="sourceCode d"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="dt">int</span> bsearch1000<span class="op">(</span><span class="fu">ref</span> <span class="dt">int</span><span class="op">[</span><span class="dv">1001</span><span class="op">]</span> xs<span class="op">,</span> <span class="dt">int</span> x<span class="op">)</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>    <span class="fu">auto</span> i <span class="op">=</span> <span class="dv">0</span><span class="op">;</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>    <span class="kw">if</span> <span class="op">(</span>xs<span class="op">[</span><span class="dv">512</span><span class="op">]</span> <span class="op">&lt;=</span> x<span class="op">)</span> <span class="op">{</span> i <span class="op">=</span> <span class="dv">1000</span> <span class="op">-</span> <span class="dv">512</span> <span class="op">+</span> <span class="dv">1</span><span class="op">;</span> <span class="op">}</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>    <span class="kw">if</span> <span class="op">(</span>xs<span class="op">[</span>i <span class="op">+</span> <span class="dv">256</span><span class="op">]</span> <span class="op">&lt;=</span> x<span class="op">)</span> <span class="op">{</span> i <span class="op">+=</span> <span class="dv">256</span><span class="op">;</span> <span class="op">}</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>    <span class="kw">if</span> <span class="op">(</span>xs<span class="op">[</span>i <span class="op">+</span> <span class="dv">128</span><span class="op">]</span> <span class="op">&lt;=</span> x<span class="op">)</span> <span class="op">{</span> i <span class="op">+=</span> <span class="dv">128</span><span class="op">;</span> <span class="op">}</span></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>    <span class="kw">if</span> <span class="op">(</span>xs<span class="op">[</span>i <span class="op">+</span> <span class="dv">64</span><span class="op">]</span> <span class="op">&lt;=</span> x<span class="op">)</span> <span class="op">{</span> i <span class="op">+=</span> <span class="dv">64</span><span class="op">;</span> <span class="op">}</span></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>    <span class="kw">if</span> <span class="op">(</span>xs<span class="op">[</span>i <span class="op">+</span> <span class="dv">32</span><span class="op">]</span> <span class="op">&lt;=</span> x<span class="op">)</span> <span class="op">{</span> i <span class="op">+=</span> <span class="dv">32</span><span class="op">;</span> <span class="op">}</span></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>    <span class="kw">if</span> <span class="op">(</span>xs<span class="op">[</span>i <span class="op">+</span> <span class="dv">16</span><span class="op">]</span> <span class="op">&lt;=</span> x<span class="op">)</span> <span class="op">{</span> i <span class="op">+=</span> <span class="dv">16</span><span class="op">;</span> <span class="op">}</span></span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>    <span class="kw">if</span> <span class="op">(</span>xs<span class="op">[</span>i <span class="op">+</span> <span class="dv">8</span><span class="op">]</span> <span class="op">&lt;=</span> x<span class="op">)</span> <span class="op">{</span> i <span class="op">+=</span> <span class="dv">8</span><span class="op">;</span> <span class="op">}</span></span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>    <span class="kw">if</span> <span class="op">(</span>xs<span class="op">[</span>i <span class="op">+</span> <span class="dv">4</span><span class="op">]</span> <span class="op">&lt;=</span> x<span class="op">)</span> <span class="op">{</span> i <span class="op">+=</span> <span class="dv">4</span><span class="op">;</span> <span class="op">}</span></span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>    <span class="kw">if</span> <span class="op">(</span>xs<span class="op">[</span>i <span class="op">+</span> <span class="dv">2</span><span class="op">]</span> <span class="op">&lt;=</span> x<span class="op">)</span> <span class="op">{</span> i <span class="op">+=</span> <span class="dv">2</span><span class="op">;</span> <span class="op">}</span></span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a>    <span class="kw">if</span> <span class="op">(</span>xs<span class="op">[</span>i <span class="op">+</span> <span class="dv">1</span><span class="op">]</span> <span class="op">&lt;=</span> x<span class="op">)</span> <span class="op">{</span> i <span class="op">+=</span> <span class="dv">1</span><span class="op">;</span> <span class="op">}</span></span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a>    <span class="kw">if</span> <span class="op">(</span>xs<span class="op">[</span>i<span class="op">]</span> <span class="op">==</span> x<span class="op">)</span> <span class="kw">return</span> i<span class="op">;</span></span>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a>    <span class="kw">else</span> <span class="kw">return</span> <span class="dv">0</span><span class="op">;</span></span>
+<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>There’s a few things going on here. First, the odd array size, 1001.
+Pascal arrays are one-based. D follows in C’s footsteps with zero-based
+arrays. We just ignore <code>xs[0]</code> in this case. This is a bug by
+the way. Bentley acknowledges it, but he doesn’t provide a fix since he
+considers it would detract from the exposition. We can fix it by setting
+<code>i</code> to <code>1</code> initially, and making the necessary
+code adjustments. This would complicate the code somewhat. Another way
+to fix it by explicitly checking if <code>i</code> is <code>0</code> in
+the last test.</p>
+<p>Second, the code fully unrolls the search loop. This is only possible
+because we know the size of the table beforehand. The code can be
+adjusted for other table sizes as needed.</p>
+<p>What makes this code beautiful is that it’s about as efficient as it
+could be. It’s also uniform, and relatively easy to understand if you
+know about Shar’s algorithm. It’s an almost word for word rendition of
+the algorithm tailored for this particular table size.</p>
+<h2 id="beautiful-metaprogramming">Beautiful metaprogramming</h2>
+<p>Beautiful as it is, Bentley’s code is somewhat tedious to adjust to
+other table sizes, and it’s easy to make mistakes while calculating the
+initial value of <code>i</code>. The code is very repetitive and
+uniform. This is a strong hint that we can automate writing it.</p>
+<p>This is where D’s powerful metaprogramming capabilities come in. If
+we can determine the size of the table at compile time, we could in
+principle generate the code for the unrolled loop automatically.</p>
+<p>As it turns out, we can determine if we’re dealing with a static
+array, and get its size at compile time. Before I show you the code,
+let’s break the problem down. The algorithm has three parts:</p>
+<ol type="1">
+<li><p>The initial test, comparing the search key <span
+class="math inline"><em>K</em></span> with <span
+class="math inline"><em>K</em><sub><em>i</em></sub></span> for <span
+class="math inline"><em>i</em> = 2<sup><em>k</em></sup></span>, <span
+class="math inline"><em>k</em> = ⌊<em>l</em><em>g</em><em>N</em>⌋</span>;</p></li>
+<li><p>Determining successive bits of the candidate position by
+iterating over powers of two; and</p></li>
+<li><p>Checking if the we found the element we are looking for.</p></li>
+</ol>
+<p>Let’s start with the function signature:</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode d"><code class="sourceCode d"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="fu">auto</span> bsearch<span class="op">(</span>T<span class="op">,</span> <span class="bu">size_t</span> n<span class="op">)(</span><span class="fu">ref</span> T<span class="op">[</span>n<span class="op">]</span> xs<span class="op">,</span> T x<span class="op">)</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span></code></pre></div>
+<p>This is really neat. I didn’t expect the D compiler to deduce
+<code>n</code>–C++ won’t– but it worked just fine. <code>T</code> is the
+array element type, and <code>n</code> is the array’s length. This is a
+static value, available at compile time.</p>
+<p>Then we determine <span class="math inline"><em>k</em></span>, the
+power of two where we start the search:</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode d"><code class="sourceCode d"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>    <span class="wa">enum</span> k <span class="op">=</span> iflog2<span class="op">(</span>n <span class="op">-</span> <span class="dv">1</span><span class="op">);</span></span></code></pre></div>
+<p><code>iflog2</code> stands for <i>i</i>nteger <i>f</i>loor
+<i>log</i>arithm in base <em>2</em>. It’s a regular D function, but it
+can be evaluated at compile time when called with a compile time value,
+which is what we do here. Using an <code>enum</code> is very similar to
+C++. Since our array is one-base we subtract one from its length.</p>
+<p>The function parameters are the table <code>xs</code> and the key
+<code>x</code> we are looking for.<a href="#fn1" class="footnote-ref"
+id="fnref1" role="doc-noteref"><sup>1</sup></a> We’re passing
+<code>xs</code> by <code>ref</code> so we don’t pass the whole array
+when we call <code>basearch</code>.</p>
+<p>The initial test is just the code rendition of the test in Shar’s
+algorithm:</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode d"><code class="sourceCode d"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>    <span class="fu">auto</span> p <span class="op">=</span> <span class="dv">0</span><span class="op">;</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>    <span class="kw">if</span> <span class="op">(</span>xs<span class="op">[</span><span class="dv">2</span> <span class="op">^^</span> k<span class="op">]</span> <span class="op">&lt;=</span> x<span class="op">)</span> p <span class="op">=</span> <span class="op">(</span>n <span class="op">-</span> <span class="dv">1</span><span class="op">)</span> <span class="op">-</span> <span class="dv">2</span> <span class="op">^^</span> k <span class="op">+</span> <span class="dv">1</span><span class="op">;</span></span></code></pre></div>
+<p>We track the position of the candidate element in <code>p</code>.</p>
+<p>Now for the fun bit, generating the power of two tests:</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode d"><code class="sourceCode d"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>    <span class="fu">static</span> <span class="kw">foreach_reverse</span> <span class="op">(</span><span class="dt">int</span> i<span class="op">;</span> <span class="dv">0</span> .. k<span class="op">)</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>        <span class="kw">if</span> <span class="op">(</span>xs<span class="op">[</span>p <span class="op">+</span> <span class="dv">2</span> <span class="op">^^</span> i<span class="op">]</span> <span class="op">&lt;=</span> x<span class="op">)</span> p <span class="op">+=</span> <span class="dv">2</span> <span class="op">^^</span> i<span class="op">;</span></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span></code></pre></div>
+<p>This code is remarkably short thanks to the problem’s regularity we
+mentioned earlier, and to D’s powerful metaprogramming capabilities. A
+<code>static foreach</code> is evaluated at compile time. And crucially,
+it doesn’t introduce a new scope. The code inside is just “spliced” in
+the code of the surrounding function. In effect, this snippet generates
+a series of <code>if</code> statements equivalent to the one in
+<code>bsearch1000</code>. We use <code>foreach_reverse</code> to iterate
+over the the exponents <span class="math inline"><em>k</em></span> to
+<span class="math inline">1</span>–the range <code>0 .. k</code> is
+open, and we’re iterating over it in reverse. The choice of
+<code>foreach_reverse</code> as a keyword is somewhat unfortunate. There
+may be a cleaner way of achieving the same result, but I don’t use D
+regularly, so this is what I came up with :^).</p>
+<p>Once we’ve determined all the bits of the candidate element position
+<code>p</code> all that’s left to do is to check if the element we’re
+looking for is at that position.</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode d"><code class="sourceCode d"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>    <span class="kw">if</span> <span class="op">(</span>p <span class="op">&gt;</span> <span class="dv">0</span> <span class="op">&amp;&amp;</span> xs<span class="op">[</span>p<span class="op">]</span> <span class="op">==</span> x<span class="op">)</span> <span class="kw">return</span> p<span class="op">;</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>    <span class="kw">return</span> <span class="dv">0</span><span class="op">;</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div>
+<p>And with this we’re done. If we check the code generated for
+<code>bsearch1000</code> and <code>bsearch</code> on <a
+href="https://godbolt.org/#z:OYLghAFBqd5QCxAYwPYBMCmBRdBLAF1QCcAaPECAMzwBtMA7AQwFtMQByARg9KtQYEAysib0QXACx8BBAKoBnTAAUAHpwAMvAFYTStJg1AB9U%2BlJL6yAngGVG6AMKpaAVxYM9DgDJ4GmADl3ACNMYhAAJgB2UgAHVAVCWwZnNw89eMSbAV9/IJZQ8OiLTCtshiECJmICVPdPLhKy5MrqglzAkLDImIUqmrr0xr62jvzCnoBKC1RXYmR2DjwWeJqAaj70ADp%2BYhYmAgBSAGYAIUONAEFl1YINgm39ggQtzFV4/0E8MRPzq5uSHdNlsni9iLMGPgjL8LtcVoD7ttiIZgJgYf94etgZtbOi4bdEVsCMjCAo8bC/HdgkpqsgEFwNIyIMRMFQ1pTDgBWU4MjRcLkAETWqgUpHZgmFk1hhyif0uFwAnExXER2WsTkKNOSNAq8GyICKuadOVwIoL1cdHBrJerZWrrbyNGsALRrE0RdURU5rflnW0C6U6vVrA1k7l4Q5eiKcgBs5pOVuOQtUk1t3rwnvOSbW0bjfplAauiuDoaNEa9poAHPHLdaU2n7V6HRFq/mooX5UH9Ybw5HTjHJDXE8nUzL05nrQPfv7A7ru2HTuXTsczZyhQm66O7Rm%2B9aV9OC7OSz3F32uHG1xbhzax42s0Lzwf20f52W%2B9XLxvs/Xbzum9nW29Q8iy7EMTyXQdP1rb8t3HXds0HNsO2LV9eyjIdNwbP97xzJ9kNA0s0J5DCYKwids19IDnxAhUXzAhcIyggNSJZAg5gYdltQVUolDWVj2LWLUzmlajO0uZVVT1WhUGACIIEpNYGFHJMTmwNZRD6eTBFTKhpJICBpNkiAlKlYSQPElVUDWalMFpBAIAAFTFRIAC9MGMO4lOZVk1gco0GHNEUxQcyURLlRUAHdiEIUoGAgSMIhGGxkDWapkQATwS0zwpoxh3DWABrC0hSkmS5I410uGy2copi2g4oSorrQSsUCuqmiJKs2JisE7VOzneijQ9LlsBGwqSJHNZuutYyXR9VNXQgYbOVGlbCtHL0fT6xUkrwFLdlsuljBZAA3MJeK0u4Iz9J0ti2dbZzHR6CJPabNuW1a1MY9doMmt6cI%2Bsbrpy2jRLoiBpuONSnUjOMIhjYUF1iGtmMm/jiA45GzP69GOKE8KwauTrrJpeZ7IcyZHKNQLRV80Ki1lGrooIWL4oiCJ0HS5gWD21LiAyrKuOJjjrQ0ghLtTEUtnoIxniFyzCp60qjIq%2Bb5dVSHNW2l6F0BtaComm1NZDVWqrmpb1RWsa2szLbsdnA6mCO07zswEMFOBwS1juh6aKev2daNf6c0tz7OKg6963%2B609a%2BrjgLElCQ0h6HPThhHXpRzDcamric/xkT8MuE7UDwdA1n2PwIClBmQY5blaMvTAFB6o0NDFRoczFCJu97rv%2B9XZiQdqln6ogGy7IgZvu8mdrE6DQQjV5flL0Ne2F6OblzXQNeQZ3hRpcYYBnh65ftYVXYQ2JncKOnG/r0dO/dy9WDnoVcCUbVAAqXD19onV95viYt/X%2BIME6RWZqzCeZNQwd0ZBoWeXER5QNJnSCA%2B84GMkQfbUSHBpi0E4JyXgngOBaFIKgTgQoFCzHmG7SMxweCkAIJoPB0wCogE5O3AhHBJDEJYeQzgvAFAgHbsw0heDSBwFgEgNAKw6BhHIJQWRsR5HhFoOgZAXBjDHHblgE6e1MAADU8CYAigAeViIwTgjCaC0BZsQYR49%2BHBD8NUdK1jeAuOYMQdKZjgjaEwNYDxpBZFsEEGYhgtB3HiNIFgfYRhxAxPwCyaweAzrCJiW8QJKpFhkMpKUfhtA8DBGRD45wWB%2BHEmWB46YukmDAAUMY0xFirHcF4PwQQIgxDsCkDIQQigVDqBiboRoBgjAgFMMYcwRTqTwGmKgWI5QMnOjMR6Z0sRTomIihqBQCBASMEwOgAAspgZ4GAFBCNKIE8o9hISDAaKQHwfhOgFG6I0TISQBD3IyAkT5DAxhdHCMMK5qSBCtAGC4eoehLDXJaP0dozzxhvIsPC75wx4UAteUC6Y1C5gLAkPgwhfCYkUI4GsdRKUuBbB0VsJ0EBcCEBIJ6BhkxeBiK0LPUg7DOH6E4Lw0gJCyGkqESIphLDOXcIiMSoVgixXiM5WdBxyQQCSCAA%3D">the
+compiler explorer</a> we see that’s it’s virtually the same up. The D
+compiler even inlined the compile time constants for us.</p>
+<h2 id="bonus-making-it-truly-generic">Bonus: making it truly
+generic</h2>
+<p>One shortcoming of our solution is that it only works for static
+arrays. It would be nice if we could detect that we’re dealing with a
+dynamic array, and fall back to another algorithm.</p>
+<p>You probably won’t be surprised to find out that we can–otherwise I
+wouldn’t be writing this section :^).</p>
+<p>The whole implementation is a bit anticlimatic really. We can just
+use function overloading, and declare a version of <code>bsearch</code>
+that takes a dynamic array parameter:</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode d"><code class="sourceCode d"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="fu">auto</span> bsearch<span class="op">(</span>T<span class="op">)(</span>T<span class="op">[]</span> xs<span class="op">,</span> T x<span class="op">)</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>    writeln<span class="op">(</span><span class="st">&quot;dynamic array: &quot;</span><span class="op">,</span> xs<span class="op">);</span></span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>    <span class="co">// ...</span></span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>    <span class="kw">return</span> <span class="dv">0</span><span class="op">;</span></span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>The compiler will choose the right overload based on the arguments we
+call the function with.</p>
+<h2 id="conclusion">Conclusion</h2>
+<p>Shar’s algorithm is a beautiful variation of binary search. If we
+know the table size in advance we can write an efficient binary search
+algorithm using it.</p>
+<p>Bentley’s implementation is also beautiful because it squeezes every
+bit of performance from the code. The code does no more than it should,
+and there is a Zen kind of beauty to it.</p>
+<p>D’s metaprogramming capabilities allowed us to take Bentley’s
+beautiful code, and make it more general. We can generate the code for
+any table size if we know it at compile time. Otherwise we fall back to
+an algorithm that can deal with dynamic arrays. Andrei Alexandrescu
+calls this technique <a
+href="https://dconf.org/2017/talks/alexandrescu.html">“Design by
+Introspection”</a>.</p>
+<p>D is a fun language to program in. It shines for this kind of
+problems, where you can make heavy use of metaprogramming. I haven’t
+used any other language where this problem could be expressed as
+cleanly, except maybe Common Lisp. I’d be curious to see a solution in
+Rust (which has a strong macro system) and <del>Zig (which I read has
+strong support for metaprogramming as well)</del>. Turns out someone <a
+href="https://blog.deckc.hair/2023-02-22-smoking-hot-binary-search-in-zig.html">implemented</a>
+the algorithm in Zig.</p>
+<section class="footnotes footnotes-end-of-document"
+role="doc-endnotes">
+<hr />
+<ol>
+<li id="fn1" role="doc-endnote"><p>In the example in this post the key
+and the element are the same, they are integers.<a href="#fnref1"
+class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+</ol>
+</section>
+</body>
+</html>
