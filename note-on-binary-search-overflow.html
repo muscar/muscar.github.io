@@ -200,21 +200,21 @@
 <p>I like reading old computing books and articles. I’m know I’m biased,
 but “they don’t make them like they used to”. The other day I was
 thumbing through Dijkstra’s “A Method of Programming”.</p>
-<p>One of my hobby horses to look at binary search implementations, and
-see if they have any of the common issues—off by ones, overflow, the
+<p>One of my hobby horses is to look at binary search implementations,
+and see if they have any of the common issues—off by ones, overflow, the
 likes. And, as it happens, Dijkstra’s book has a chapter on binary
 search. I didn’t expect there to be off by one errors —the whole book is
 about deriving correct programs— but I was curious how he chose the
-midpoint. It’s quite common to see something like of <span
+midpoint.</p>
+<p>Most textbooks use something like of <span
 class="math inline"><em>m</em> ← (<em>l</em>+<em>u</em>)/2</span>, where
 <span class="math inline"><em>l</em></span> and <span
-class="math inline"><em>u</em></span> pointers to the lower and upper
-limits of the search interval.</p>
-<p>This is OK in pseudocode since we don’t have to worry about overflows
-in math. But it doesn’t work so well in the real world where integers
-tend to be bounded. Long story short, <a
-href="https://blog.research.google/2006/06/extra-extra-read-all-about-it-nearly.html">this
-was a thing</a> in 2006.</p>
+class="math inline"><em>u</em></span> are pointers to the lower and
+upper limits of the search interval. This is OK in pseudocode since
+there are no overflows in math. But it doesn’t work so well in the real
+world where integers tend to be bounded. Long story short, <a
+href="https://blog.research.google/2006/06/extra-extra-read-all-about-it-nearly.html">this</a>
+was a thing in 2006.</p>
 <p>Let’s see what Dijkstra had to say about overflows in 1988:</p>
 <blockquote>
 <p>Note that the correctness of our solution does not depend on whether
