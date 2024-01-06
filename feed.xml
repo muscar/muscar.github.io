@@ -5,10 +5,10 @@
 <link>https://muscar.eu/</link>
 <description>I try to make computers do cool things. Sometimes I succeed.</description>
 <managingEditor>[email protected] (Alex Muscar)</managingEditor>
-<pubDate>Thu, 04 Jan 2024 16:58:48 +0000</pubDate>
+<pubDate>Sat, 06 Jan 2024 10:53:07 +0000</pubDate>
 <item>
 <title>A simple problem that isn't</title>
-<link>https://muscar.eu/posts/bitset-iter.html</link>
+<link>https://muscar.eu/bitset-iter.html</link>
 <description>A simple problem that isn't</description>
 <content:encoded><![CDATA[<div id="home-link">
 	<a href="https://muscar.eu">muscar.eu</a>
@@ -443,7 +443,7 @@ href="#fnref5" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
 </item>
 <item>
 <title>A verified algorithm for determining the intersection point of two lists in O(1) space</title>
-<link>https://muscar.eu/posts/linked-list-intersection-proof.html</link>
+<link>https://muscar.eu/linked-list-intersection-proof.html</link>
 <description>A verified algorithm for determining the intersection point of two lists in O(1) space</description>
 <content:encoded><![CDATA[<div id="home-link">
 	<a href="https://muscar.eu">muscar.eu</a>
@@ -704,7 +704,7 @@ role="doc-backlink">↩︎</a></p></li>
 </item>
 <item>
 <title>Determining the intersection point of two lists in O(1) space</title>
-<link>https://muscar.eu/posts/linked-list-intersection.html</link>
+<link>https://muscar.eu/linked-list-intersection.html</link>
 <description>Determining the intersection point of two lists in O(1) space</description>
 <content:encoded><![CDATA[<div id="home-link">
 	<a href="https://muscar.eu">muscar.eu</a>
@@ -873,7 +873,7 @@ role="doc-backlink">↩︎</a></p></li>
 </item>
 <item>
 <title>My blog workflow</title>
-<link>https://muscar.eu/posts/my-blog-workflow.html</link>
+<link>https://muscar.eu/my-blog-workflow.html</link>
 <description>My blog workflow</description>
 <content:encoded><![CDATA[<div id="home-link">
 	<a href="https://muscar.eu">muscar.eu</a>
@@ -1095,7 +1095,7 @@ role="doc-backlink">↩︎</a></p></li>
 </item>
 <item>
 <title>On self-modifying executables in Go</title>
-<link>https://muscar.eu/posts/self-modify.html</link>
+<link>https://muscar.eu/self-modify.html</link>
 <description>On self-modifying executables in Go</description>
 <content:encoded><![CDATA[<div id="home-link">
 	<a href="https://muscar.eu">muscar.eu</a>
@@ -1285,7 +1285,7 @@ That means there’s nothing for us to patch.</p>]]></content:encoded>
 </item>
 <item>
 <title>Beautiful Binary Search in D</title>
-<link>https://muscar.eu/posts/shar-binary-search-meta.html</link>
+<link>https://muscar.eu/shar-binary-search-meta.html</link>
 <description>Beautiful Binary Search in D</description>
 <content:encoded><![CDATA[<div id="home-link">
 	<a href="https://muscar.eu">muscar.eu</a>
@@ -1533,7 +1533,7 @@ class="footnote-back" role="doc-backlink">↩︎</a></p></li>
 </item>
 <item>
 <title>Coroutines in SPARC assembly</title>
-<link>https://muscar.eu/posts/sparc-coroutines.html</link>
+<link>https://muscar.eu/sparc-coroutines.html</link>
 <description>Coroutines in SPARC assembly</description>
 <content:encoded><![CDATA[<div id="home-link">
 	<a href="https://muscar.eu">muscar.eu</a>
@@ -1853,7 +1853,7 @@ href="#fnref5" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
 </item>
 <item>
 <title>X macros in D</title>
-<link>https://muscar.eu/posts/x-macros-in-dlang.html</link>
+<link>https://muscar.eu/x-macros-in-dlang.html</link>
 <description>X macros in D</description>
 <content:encoded><![CDATA[<div id="home-link">
 	<a href="https://muscar.eu">muscar.eu</a>
@@ -1987,7 +1987,7 @@ surprises like this one I stumble on. So far I’m digging D :^).</p>]]></conten
 </item>
 <item>
 <title>A Note on Binary Search and Overflows</title>
-<link>https://muscar.eu/notes/note-on-binary-search-overflow.html</link>
+<link>https://muscar.eu/note-on-binary-search-overflow.html</link>
 <description>A Note on Binary Search and Overflows</description>
 <content:encoded><![CDATA[<div id="home-link">
 	<a href="https://muscar.eu">muscar.eu</a>
@@ -2007,8 +2007,8 @@ search. I didn’t expect there to be off by one errors —the whole book is
 about deriving correct programs— but I was curious how he chose the
 midpoint.</p>
 <p>Most textbooks use something like <span
-class="math inline"><em>m</em> ← (<em>l</em>+<em>u</em>)/2</span>, where
-<span class="math inline"><em>l</em></span> and <span
+class="math inline"><em>m</em> ← (<em>l</em>+<em>u</em>) / 2</span>,
+where <span class="math inline"><em>l</em></span> and <span
 class="math inline"><em>u</em></span> are pointers to the lower and
 upper limits of the search interval. This is OK in pseudocode since
 there are no overflows in math. But it doesn’t work so well in the real
