@@ -5,7 +5,7 @@
 <link>https://muscar.eu/</link>
 <description>I try to make computers do cool things. Sometimes I succeed.</description>
 <managingEditor>[email protected] (Alex Muscar)</managingEditor>
-<pubDate>Sat, 06 Jan 2024 10:53:07 +0000</pubDate>
+<pubDate>Sun, 07 Jan 2024 16:23:57 +0000</pubDate>
 <item>
 <title>A simple problem that isn't</title>
 <link>https://muscar.eu/bitset-iter.html</link>
@@ -2032,6 +2032,102 @@ not unusual in the literature.</p>
 <p>I guess it pays to read old books after all.</p>]]></content:encoded>
 <author>Alex Muscar</author>
 <pubDate>Thu, 04 Jan 2024 12:03:17 +0000</pubDate>
+</item>
+<item>
+<title>A Note on Information Hiding and Encapsulation</title>
+<link>https://muscar.eu/note-on-information-hiding.html</link>
+<description>A Note on Information Hiding and Encapsulation</description>
+<content:encoded><![CDATA[<div id="home-link">
+	<a href="https://muscar.eu">muscar.eu</a>
+</div>
+<header id="title-block-header">
+<h1 class="title">A Note on Information Hiding and Encapsulation</h1>
+<p class="author">Alex Muscar</p>
+<p class="date">January 07, 2024</p>
+</header>
+<p>I have a feeling that Computer Science suffers from cargo culting
+more than other fields. There’s plenty of examples —process theatre,
+security theatre— but in this note I’m going to talk about information
+hiding and its doppelgänger, encapsulation.</p>
+<p>Information hiding was introduced by David L. Parnas in his seminal
+paper <a href="https://dl.acm.org/doi/pdf/10.1145/361598.361623">“On the
+Criteria To Be Used in Decomposing Systems into Modules”</a>.<a
+href="#fn1" class="footnote-ref" id="fnref1"
+role="doc-noteref"><sup>1</sup></a> At its core, information hiding is
+about hiding <em>design decisions</em>:</p>
+<blockquote>
+<p>Every module in the second decomposition is characterized by its
+knowledge of a design decision which it hides from all others. Its
+interface or definition was chosen to reveal as little as possible about
+its inner workings.</p>
+</blockquote>
+<p>That’s it. There’s nothing here about public or private data, getters
+or setters and so on. Which brings us to encapsulation.</p>
+<p>Unlike information hiding, which has pretty clear definition,
+encapsulation is a muddled term. Depending on who you ask, it can mean
+either (a) grouping the procedures that implement an abstraction
+together with the state they are operating on, or (b) the language
+mechanisms used to restrict access to the state. We’re already not off
+to a great start. For such a fundamental concept in OOP, it awfully
+murky.</p>
+<p>You can get information hiding using encapsulation, but it’s not
+essential. What tends to happen in a lot of cases is that people confuse
+the two. Because information hiding is a good thing, it must mean that
+encapsulation is also good. But, sice encapsulation brings with it more
+than just information hiding, suddenly this is a Good
+Thing<sup>TM</sup>:</p>
+<div class="sourceCode" id="cb1"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> <span class="bu">Point</span> <span class="op">{</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="dt">float</span> x<span class="op">;</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="dt">float</span> y<span class="op">;</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="bu">Point</span><span class="op">(</span><span class="dt">float</span> x<span class="op">,</span> <span class="dt">float</span> y<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>        <span class="kw">this</span><span class="op">.</span><span class="fu">x</span> <span class="op">=</span> x<span class="op">;</span></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>        <span class="kw">this</span><span class="op">.</span><span class="fu">y</span> <span class="op">=</span> y<span class="op">;</span></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="dt">float</span> <span class="fu">getX</span><span class="op">()</span> <span class="op">{</span> <span class="cf">return</span> x<span class="op">;</span> <span class="op">}</span></span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="dt">float</span> <span class="fu">getY</span><span class="op">()</span> <span class="op">{</span> <span class="cf">return</span> y<span class="op">;</span> <span class="op">}</span></span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="dt">void</span> <span class="fu">setX</span><span class="op">(</span><span class="dt">float</span> x<span class="op">)</span> <span class="op">{</span> <span class="kw">this</span><span class="op">.</span><span class="fu">x</span> <span class="op">=</span> x<span class="op">;</span> <span class="op">}</span></span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="dt">void</span> <span class="fu">setY</span><span class="op">(</span><span class="dt">float</span> y<span class="op">)</span> <span class="op">{</span> <span class="kw">this</span><span class="op">.</span><span class="fu">y</span> <span class="op">=</span> y<span class="op">;</span> <span class="op">}</span></span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>Because of course you’re going to want to change the “implementation
+details” of your <code>Point</code>. Making fields that are not likely
+to change private and adding trivial getters and setters is not
+information hiding. It’s cargo culting.</p>
+<p>Here’s a sounder —in my opinion— approach taken from Niklaus Wirth’s
+<a href="https://www.projectoberon.net/">Project Oberon</a>:</p>
+<div class="sourceCode" id="cb2"><pre
+class="sourceCode pascal"><code class="sourceCode pascal"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="kw">TYPE</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>  Rider* =</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>    <span class="kw">RECORD</span> eof*: <span class="dt">BOOLEAN</span>;</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>      res*: <span class="dt">INTEGER</span>;</span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>      <span class="kw">file</span>: <span class="kw">File</span>;</span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>      apos, bpos: <span class="dt">INTEGER</span>;</span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>      buf: Buffer</span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>    <span class="kw">END</span>;</span></code></pre></div>
+<p>The <code>*</code> marker means <code>eof</code> is a public field.
+Because, guess what, chances are it’s not going to change any time soon.
+The crucial point is that it’s exported <em>read only</em>. Clients of
+the module are free to inspect the field directly, but can’t modify it.
+That’s a <em>conscious design decision</em>. And while the field is
+public, the code that updates it is not. That’s information hiding.</p>
+<p>To paraphrase Dijkstra: “Encapsulation is information hiding for
+those who can not”.</p>
+<section class="footnotes footnotes-end-of-document"
+role="doc-endnotes">
+<hr />
+<ol>
+<li id="fn1" role="doc-endnote"><p>To be completely accurate, it was
+introduced in “Information distribution aspects of design methodology”,
+a year earlier, in 1971. But “On the Criteria…” is the better known of
+the two.<a href="#fnref1" class="footnote-back"
+role="doc-backlink">↩︎</a></p></li>
+</ol>
+</section>]]></content:encoded>
+<author>Alex Muscar</author>
+<pubDate>Thu, 07 Jan 2024 14:56:00 +0000</pubDate>
 </item>
 </channel>
 </rss>
