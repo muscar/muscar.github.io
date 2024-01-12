@@ -268,7 +268,7 @@ hiding and its doppelgänger, encapsulation.</p>
 paper <a href="https://dl.acm.org/doi/pdf/10.1145/361598.361623">“On the
 Criteria To Be Used in Decomposing Systems into Modules”</a>.<a
 href="#fn1" class="footnote-ref" id="fnref1"
-role="doc-noteref"><sup>1</sup></a> At its core, information hiding is
+role="doc-noteref"><sup>1</sup></a> At its core information hiding is
 about hiding <em>design decisions</em>:</p>
 <blockquote>
 <p>Every module in the second decomposition is characterized by its
@@ -279,17 +279,15 @@ its inner workings.</p>
 <p>That’s it. There’s nothing here about public or private data, getters
 or setters and so on. Which brings us to encapsulation.</p>
 <p>Unlike information hiding, which has pretty clear definition,
-encapsulation is a muddled term. Depending on who you ask, it can mean
+encapsulation is a vague term. Depending on who you ask, it can mean
 either (a) grouping the procedures that implement an abstraction
 together with the state they are operating on, or (b) the language
-mechanisms used to restrict access to the state. We’re already not off
-to a great start. For such a fundamental concept in OOP, it awfully
-murky.</p>
-<p>You can get information hiding using encapsulation, but it’s not
-essential. What tends to happen in a lot of cases is that people confuse
-the two. Because information hiding is a good thing, it must mean that
-encapsulation is also good. But, sice encapsulation brings with it more
-than just information hiding, suddenly this is a Good
+mechanisms used to restrict access to the state. For one of the
+fundamental concepts in OOP, it awfully murky.</p>
+<p>Now, you can get information hiding using encapsulation. But what
+tends to happen in a lot of cases is that people confuse the mechanism
+with the concept. And because information hiding is a good thing, it
+must mean that encapsulation is also good. Suddenly this is a Good
 Thing<sup>TM</sup>:</p>
 <div class="sourceCode" id="cb1"><pre
 class="sourceCode java"><code class="sourceCode java"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> <span class="bu">Point</span> <span class="op">{</span></span>
@@ -313,15 +311,14 @@ to change private and adding trivial getters and setters is not
 information hiding. It’s cargo culting.</p>
 <p>Here’s a sounder —in my opinion— approach taken from Niklaus Wirth’s
 <a href="https://www.projectoberon.net/">Project Oberon</a>:</p>
-<div class="sourceCode" id="cb2"><pre
-class="sourceCode pascal"><code class="sourceCode pascal"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="kw">TYPE</span></span>
-<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>  Rider* =</span>
-<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>    <span class="kw">RECORD</span> eof*: <span class="dt">BOOLEAN</span>;</span>
-<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>      res*: <span class="dt">INTEGER</span>;</span>
-<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>      <span class="kw">file</span>: <span class="kw">File</span>;</span>
-<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>      apos, bpos: <span class="dt">INTEGER</span>;</span>
-<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>      buf: Buffer</span>
-<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>    <span class="kw">END</span>;</span></code></pre></div>
+<pre class="oberon"><code>TYPE
+  Rider* =
+    RECORD eof*: BOOLEAN;
+      res*: INTEGER;
+      file: File;
+      apos, bpos: INTEGER;
+      buf: Buffer
+    END;</code></pre>
 <p>The <code>*</code> marker means <code>eof</code> is a public field.
 Because, guess what, chances are it’s not going to change any time soon.
 The crucial point is that it’s exported <em>read only</em>. Clients of
